@@ -1,0 +1,2 @@
+[workspace]
+members = ["drophub-back", "drophub-front", "drophub"]

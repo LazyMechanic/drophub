@@ -1,0 +1,32 @@
+[package]
+name = "drophub-back"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+drophub = { path = "../drophub", version = "0.1.0" }
+
+anyhow = "1.0.70"
+base64 = "0.21.0"
+clap = { version = "4.2.4", features = ["derive"] }
+config = { version = "0.13.3", features = ["yaml"] }
+dashmap = "5.4.0"
+dotenv = "0.15.0"
+humantime-serde = "1.1.1"
+jsonrpsee-core = "0.17.1"
+jsonrpsee-types = "0.17.1"
+jsonwebtoken = "8.3.0"
+parking_lot = "0.12.1"
+passwords = "3.1.13"
+serde = { version = "1.0.160", features = ["derive"] }
+serde_json = "1.0.96"
+thiserror = "1.0.40"
+time = "0.3.20"
+tokio = { version = "1.27.0", features = ["full"] }
+tracing = "0.1.37"
+tracing-bunyan-formatter = "0.3.7"
+tracing-subscriber = "0.3.16"
+ttl_cache = "0.5.1"
+uuid = { version = "1.3.1", features = ["v4"] }
