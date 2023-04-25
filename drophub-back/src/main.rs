@@ -14,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
     init_logging()?;
 
     let cli = Cli::parse();
-    let cfg = Config::new(cli.config_path.as_ref().map(|p| p.as_path()))?;
+    let cfg = Config::new(cli.config_path.as_deref())?;
     server::run(&cfg).await
 }
 

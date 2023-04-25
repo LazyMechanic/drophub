@@ -12,7 +12,7 @@ pub type RoomId = u64;
 pub type InviteId = String;
 pub type FileId = Uuid;
 pub type ClientId = Uuid;
-pub type DownloadId = Uuid;
+pub type DownloadProcId = Uuid;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct RoomOptions {
@@ -95,7 +95,7 @@ impl TryFrom<&FileData> for SubscriptionMessage {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct UploadRequest {
-    pub download_id: DownloadId,
+    pub download_id: DownloadProcId,
     pub file_id: FileId,
     pub block_idx: usize,
 }

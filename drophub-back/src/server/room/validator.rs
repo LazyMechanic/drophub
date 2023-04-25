@@ -5,7 +5,6 @@ use serde_json::json;
 use time::OffsetDateTime;
 
 use crate::{
-    config::RoomConfig,
     jwt::{ClientRole, Jwt},
     server::room::types::Room,
 };
@@ -15,7 +14,6 @@ use crate::{
 pub struct RoomValidator<'a, R> {
     jwt: &'a Jwt,
     room: R,
-    cfg: &'a RoomConfig,
 }
 
 pub trait RoomValidate {
@@ -32,8 +30,8 @@ pub trait RoomMutValidate: RoomValidate {
 }
 
 impl<'a, R> RoomValidator<'a, R> {
-    pub fn new(jwt: &'a Jwt, room: R, cfg: &'a RoomConfig) -> Self {
-        Self { jwt, room, cfg }
+    pub fn new(jwt: &'a Jwt, room: R) -> Self {
+        Self { jwt, room }
     }
 }
 
@@ -54,15 +52,15 @@ where
     }
 
     fn check_remove_file(&self, file_id: FileId) -> Result<(), RoomError> {
-        let file =
-            self.room
-                .borrow()
-                .files
-                .get(&file_id)
-                .ok_or_else(|| RoomError::FileNotFound {
-                    file_id,
-                    room_id: self.jwt.access_token.room_id,
-                })?;
+        let file = self
+            .room
+            .borrow()
+            .files
+            .get(&file_id)
+            .ok_or(RoomError::FileNotFound {
+                file_id,
+                room_id: self.jwt.access_token.room_id,
+            })?;
 
         if self.jwt.access_token.client_id != file.owner {
             return Err(RoomError::PermissionDenied {
@@ -76,15 +74,15 @@ where
     }
 
     fn check_download_file(&self, file_id: FileId) -> Result<(), RoomError> {
-        let file =
-            self.room
-                .borrow()
-                .files
-                .get(&file_id)
-                .ok_or_else(|| RoomError::FileNotFound {
-                    file_id,
-                    room_id: self.jwt.access_token.room_id,
-                })?;
+        let file = self
+            .room
+            .borrow()
+            .files
+            .get(&file_id)
+            .ok_or(RoomError::FileNotFound {
+                file_id,
+                room_id: self.jwt.access_token.room_id,
+            })?;
 
         if self.jwt.access_token.client_id == file.owner {
             return Err(RoomError::DownloadYourOwnFileNotAllowed {

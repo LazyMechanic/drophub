@@ -8,8 +8,8 @@ use std::{
 
 use anyhow::anyhow;
 use drophub::{
-    ClientId, DownloadId, FileId, FileMeta, Invite, InviteId, RoomError, RoomId, RoomInfo,
-    RoomOptions, UploadRequest,
+    ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InviteId, RoomError, RoomId,
+    RoomInfo, RoomOptions, UploadRequest,
 };
 use passwords::PasswordGenerator;
 use time::OffsetDateTime;
@@ -25,7 +25,7 @@ pub struct Room {
     pub clients: HashMap<ClientId, Client>,
     pub files: HashMap<FileId, File>,
     pub invites: TtlCache<InviteId, Invite>,
-    pub downloads: HashMap<DownloadId, Download>,
+    pub downloads: HashMap<DownloadProcId, DownloadProc>,
     pub encryption: bool,
     pub capacity: usize,
     pub block_size: usize,
@@ -165,24 +165,31 @@ impl File {
 }
 
 #[derive(Debug)]
-pub struct Download {
-    pub id: DownloadId,
+pub struct DownloadProc {
+    pub id: DownloadProcId,
     pub file_id: FileId,
     pub next_block_idx: usize,
     pub blocks_count: usize,
+    pub data_tx: mpsc::Sender<FileData>,
 }
 
-impl Download {
-    pub fn new(file_id: FileId, file_size: usize, block_size: usize) -> Self {
+impl DownloadProc {
+    pub fn new(
+        file_id: FileId,
+        file_size: usize,
+        block_size: usize,
+        data_tx: mpsc::Sender<FileData>,
+    ) -> Self {
         Self {
             id: Self::next_id(),
             file_id,
             next_block_idx: 0,
             blocks_count: (file_size + block_size - 1) / block_size,
+            data_tx,
         }
     }
 
-    fn next_id() -> DownloadId {
+    fn next_id() -> DownloadProcId {
         Uuid::new_v4()
     }
 }

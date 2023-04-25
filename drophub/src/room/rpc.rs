@@ -1,8 +1,8 @@
 use jsonrpsee::{core::SubscriptionResult, proc_macros::rpc};
 
 use crate::{
-    ClientEvent, ClientId, DownloadId, FileData, FileId, FileMeta, Invite, InviteId, JwtEncoded,
-    RoomError, RoomId, RoomOptions,
+    ClientEvent, ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InviteId,
+    JwtEncoded, RoomError, RoomId, RoomOptions,
 };
 
 #[rpc(client, server, namespace = "room")]
@@ -35,10 +35,8 @@ pub trait RoomRpc {
     async fn upload_file(
         &self,
         jwt: JwtEncoded,
-        file_id: FileId,
         file_data: FileData,
-        block_idx: usize,
-        download_id: DownloadId,
+        download_id: DownloadProcId,
     ) -> Result<(), RoomError>;
 
     /// Creates new room and connect to it.

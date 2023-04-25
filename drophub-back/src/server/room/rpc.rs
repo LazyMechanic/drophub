@@ -1,3 +1,5 @@
+// TODO: access to clients, files, downloads, etc. via failable funcs
+
 use std::{ops::Add, pin::pin};
 
 use anyhow::anyhow;
@@ -6,17 +8,15 @@ use dashmap::{
     DashMap,
 };
 use drophub::{
-    ClientEvent, ClientId, DownloadId, FileData, FileId, FileMeta, Invite, InviteId, JwtEncoded,
-    RoomError, RoomId, RoomOptions, RoomRpcServer,
+    ClientEvent, ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InviteId,
+    JwtEncoded, RoomError, RoomId, RoomOptions, RoomRpcServer,
 };
 use jsonrpsee::{
     core::{async_trait, SubscriptionResult},
     PendingSubscriptionSink,
 };
-use passwords::PasswordGenerator;
 use replace_with::replace_with_or_default;
 use scopeguard::defer;
-use serde_json::json;
 use time::OffsetDateTime;
 use tokio::sync::{broadcast::error::RecvError, mpsc};
 use tracing::instrument;
@@ -26,7 +26,7 @@ use crate::{
     config::{Config, RoomConfig},
     jwt::{AccessToken, ClientRole, Jwt, RefreshToken},
     server::room::{
-        types::{Client, Download, File, Room},
+        types::{Client, DownloadProc, File, Room},
         validator::{RoomMutValidate, RoomValidate, RoomValidator},
     },
 };
@@ -48,13 +48,13 @@ impl RoomRpc {
     fn get_room(&self, room_id: RoomId) -> Result<Ref<'_, RoomId, Room>, RoomError> {
         self.rooms
             .get(&room_id)
-            .ok_or_else(|| RoomError::RoomNotFound { room_id })
+            .ok_or(RoomError::RoomNotFound { room_id })
     }
 
     fn get_room_mut(&self, room_id: RoomId) -> Result<RefMut<'_, RoomId, Room>, RoomError> {
         self.rooms
             .get_mut(&room_id)
-            .ok_or_else(|| RoomError::RoomNotFound { room_id })
+            .ok_or(RoomError::RoomNotFound { room_id })
     }
 }
 
@@ -64,7 +64,7 @@ impl RoomRpcServer for RoomRpc {
     async fn invite(&self, jwt: JwtEncoded) -> Result<Invite, RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
-        RoomValidator::new(&jwt, &mut *room, &self.cfg).validate_invite()?;
+        RoomValidator::new(&jwt, &mut *room).validate_invite()?;
 
         let invite = room.generate_invite(self.cfg.invite_duration)?;
         room.invites
@@ -83,12 +83,12 @@ impl RoomRpcServer for RoomRpc {
     async fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InviteId) -> Result<(), RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
-        RoomValidator::new(&jwt, &*room, &self.cfg).validate_revoke_invite()?;
+        RoomValidator::new(&jwt, &*room).validate_revoke_invite()?;
 
         let _ = room
             .invites
             .remove(&invite_id)
-            .ok_or_else(|| RoomError::InviteNotFound {
+            .ok_or(RoomError::InviteNotFound {
                 invite_id,
                 room_id: jwt.access_token.room_id,
             })?;
@@ -106,13 +106,13 @@ impl RoomRpcServer for RoomRpc {
     async fn kick(&self, jwt: JwtEncoded, client_id: ClientId) -> Result<(), RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
-        RoomValidator::new(&jwt, &*room, &self.cfg).validate_kick(client_id)?;
+        RoomValidator::new(&jwt, &*room).validate_kick(client_id)?;
 
         // Remove client from list
         let _ = room
             .clients
             .remove(&client_id)
-            .ok_or_else(|| RoomError::ClientNotFound {
+            .ok_or(RoomError::ClientNotFound {
                 client_id,
                 room_id: jwt.access_token.room_id,
             })?;
@@ -122,7 +122,7 @@ impl RoomRpcServer for RoomRpc {
         replace_with_or_default(&mut room.files, |room_files| {
             room_files
                 .into_iter()
-                .filter(|(file_id, file)| file.owner != client_id)
+                .filter(|(_, file)| file.owner != client_id)
                 .collect()
         });
 
@@ -143,7 +143,7 @@ impl RoomRpcServer for RoomRpc {
     ) -> Result<FileId, RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
-        RoomValidator::new(&jwt, &*room, &self.cfg).validate_announce_file()?;
+        RoomValidator::new(&jwt, &*room).validate_announce_file()?;
 
         let file = File::new(file_meta, jwt.access_token.client_id);
         let file_id = file.id;
@@ -162,7 +162,7 @@ impl RoomRpcServer for RoomRpc {
     async fn remove_file(&self, jwt: JwtEncoded, file_id: FileId) -> Result<(), RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
-        RoomValidator::new(&jwt, &*room, &self.cfg).validate_remove_file(file_id)?;
+        RoomValidator::new(&jwt, &*room).validate_remove_file(file_id)?;
 
         room.files.remove(&file_id);
 
@@ -179,16 +179,33 @@ impl RoomRpcServer for RoomRpc {
     async fn upload_file(
         &self,
         jwt: JwtEncoded,
-        file_id: FileId,
         file_data: FileData,
-        block_idx: usize,
-        download_id: DownloadId,
+        download_id: DownloadProcId,
     ) -> Result<(), RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
-        let room = self.get_room_mut(jwt.access_token.room_id)?;
-        RoomValidator::new(&jwt, &*room, &self.cfg).validate_upload_file()?;
+        let mut room = self.get_room_mut(jwt.access_token.room_id)?;
+        RoomValidator::new(&jwt, &*room).validate_upload_file()?;
 
-        todo!()
+        let mut download_proc =
+            room.downloads
+                .get_mut(&download_id)
+                .ok_or(RoomError::DownloadProcessNotFound {
+                    download_id,
+                    room_id: jwt.access_token.room_id,
+                })?;
+
+        download_proc
+            .data_tx
+            .send(file_data)
+            .await
+            .map_err(|_| anyhow!("Data channel closed"))?;
+
+        download_proc.next_block_idx += 1;
+        if download_proc.next_block_idx >= download_proc.blocks_count {
+            room.downloads.remove(&download_id);
+        }
+
+        Ok(())
     }
 
     #[instrument(skip(self, subscription_sink), err(Debug))]
@@ -298,12 +315,12 @@ impl RoomRpcServer for RoomRpc {
             let mut room = self
                 .rooms
                 .get_mut(&room_id)
-                .ok_or_else(|| RoomError::RoomNotFound { room_id })?;
+                .ok_or(RoomError::RoomNotFound { room_id })?;
 
             let _ = room
                 .invites
                 .remove(&invite_id)
-                .ok_or_else(|| RoomError::InviteNotFound { invite_id, room_id })?;
+                .ok_or(RoomError::InviteNotFound { invite_id, room_id })?;
 
             // Add connected client
             room.clients.insert(client.id, client);
@@ -330,7 +347,7 @@ impl RoomRpcServer for RoomRpc {
             replace_with_or_default(&mut room.files, |room_files| {
                 room_files
                     .into_iter()
-                    .filter(|(file_id, file)| file.owner != client_id)
+                    .filter(|(_, file)| file.owner != client_id)
                     .collect()
             });
         }
@@ -382,29 +399,50 @@ impl RoomRpcServer for RoomRpc {
         file_id: FileId,
     ) -> SubscriptionResult {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
-        let room = self.get_room_mut(jwt.access_token.room_id)?;
-        RoomValidator::new(&jwt, &*room, &self.cfg).validate_sub_download(file_id)?;
+        let (download_proc_id, mut data_rx) = {
+            let mut room = self.get_room_mut(jwt.access_token.room_id)?;
+            RoomValidator::new(&jwt, &*room).validate_sub_download(file_id)?;
 
-        let sink = subscription_sink.accept().await?;
-        let mut sink_closed = pin!(sink.closed());
-
-        let room =
-            self.rooms
-                .get(&jwt.access_token.room_id)
-                .ok_or_else(|| RoomError::RoomNotFound {
-                    room_id: jwt.access_token.room_id,
-                })?;
-
-        let file = room
-            .files
-            .get(&file_id)
-            .ok_or_else(|| RoomError::FileNotFound {
+            let file = room.files.get(&file_id).ok_or(RoomError::FileNotFound {
                 file_id,
                 room_id: jwt.access_token.room_id,
             })?;
 
-        let download = Download::new(file_id, file.meta.size, self.cfg.block_size);
+            let (data_tx, data_rx) = mpsc::channel(1);
+            let download_proc =
+                DownloadProc::new(file_id, file.meta.size, self.cfg.block_size, data_tx);
 
-        Ok(())
+            let download_proc_id = download_proc.id;
+            room.downloads.insert(download_proc.id, download_proc);
+
+            (download_proc_id, data_rx)
+        };
+
+        defer! {
+            let Some(mut room) = self.rooms.get_mut(&jwt.access_token.room_id) else { return };
+            room.downloads.remove(&download_proc_id);
+        }
+
+        let sink = subscription_sink.accept().await?;
+        let mut sink_closed = pin!(sink.closed());
+
+        loop {
+            tokio::select! {
+                _ = &mut sink_closed => {
+                    tracing::debug!("Subscription sink closed");
+                    break Ok(());
+                }
+                maybe_data = data_rx.recv() => match maybe_data {
+                    Some(data) => {
+                        tracing::debug!("Received file data");
+                        sink.send(data.try_into()?).await?;
+                    }
+                    None => {
+                        tracing::debug!("File downloading done");
+                        break Ok(());
+                    }
+                }
+            }
+        }
     }
 }
