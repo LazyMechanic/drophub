@@ -1,31 +1,25 @@
 use jsonrpsee::{core::SubscriptionResult, proc_macros::rpc};
 
 use crate::{
-    ClientId, File, FileId, FileMeta, Invite, InviteId, JwtEncoded, RoomError, RoomId, RoomInfo,
-    RoomOptions,
+    ClientEvent, ClientId, DownloadId, FileData, FileId, FileMeta, Invite, InviteId, JwtEncoded,
+    RoomError, RoomId, RoomOptions,
 };
 
 #[rpc(client, server, namespace = "room")]
 pub trait RoomRpc {
-    #[method(name = "create")]
-    async fn create(&self, options: RoomOptions) -> Result<JwtEncoded, RoomError>;
-
-    #[method(name = "connect")]
-    async fn connect(&self, room_id: RoomId, invite_id: InviteId) -> Result<JwtEncoded, RoomError>;
-
+    /// Creates new invite.
     #[method(name = "invite")]
-    async fn invite(&self, host_jwt: JwtEncoded) -> Result<Invite, RoomError>;
+    async fn invite(&self, jwt: JwtEncoded) -> Result<Invite, RoomError>;
 
+    /// Revokes invite.
     #[method(name = "revoke_invite")]
-    async fn revoke_invite(
-        &self,
-        host_jwt: JwtEncoded,
-        invite_id: InviteId,
-    ) -> Result<(), RoomError>;
+    async fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InviteId) -> Result<(), RoomError>;
 
+    /// Kicks client.
     #[method(name = "kick")]
-    async fn kick(&self, host_jwt: JwtEncoded, client_id: ClientId) -> Result<(), RoomError>;
+    async fn kick(&self, jwt: JwtEncoded, client_id: ClientId) -> Result<(), RoomError>;
 
+    /// Announces new file.
     #[method(name = "announce_file")]
     async fn announce_file(
         &self,
@@ -36,17 +30,26 @@ pub trait RoomRpc {
     #[method(name = "remove_file")]
     async fn remove_file(&self, jwt: JwtEncoded, file_id: FileId) -> Result<(), RoomError>;
 
-    #[method(name = "download")]
-    async fn download(
+    /// Uploads received file.
+    #[method(name = "upload_file")]
+    async fn upload_file(
         &self,
         jwt: JwtEncoded,
         file_id: FileId,
-        offset_index: usize,
-    ) -> Result<File, RoomError>;
+        file_data: FileData,
+        block_idx: usize,
+        download_id: DownloadId,
+    ) -> Result<(), RoomError>;
 
-    #[subscription(name = "sub_info", unsubscribe = "unsub_info", item = RoomInfo)]
-    async fn sub_info(&self, jwt: JwtEncoded) -> SubscriptionResult;
+    /// Creates new room and connect to it.
+    #[subscription(name = "sub_create", unsubscribe = "unsub_create", item = ClientEvent)]
+    async fn create(&self, options: RoomOptions) -> SubscriptionResult;
 
-    #[subscription(name = "sub_download", unsubscribe = "unsub_download", item = FileId)]
-    async fn sub_download(&self, jwt: JwtEncoded) -> SubscriptionResult;
+    /// Connects to existed room.
+    #[subscription(name = "sub_connect", unsubscribe = "unsub_connect", item = ClientEvent)]
+    async fn connect(&self, room_id: RoomId, invite_id: InviteId) -> SubscriptionResult;
+
+    /// Subscribes to receive the file block by block.
+    #[subscription(name = "sub_download", unsubscribe = "unsub_download", item = FileData)]
+    async fn sub_download(&self, jwt: JwtEncoded, file_id: FileId) -> SubscriptionResult;
 }

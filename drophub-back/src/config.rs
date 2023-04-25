@@ -7,14 +7,20 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub server: ServerConfig,
+    pub room: RoomConfig,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ServerConfig {
     pub bind_addr: SocketAddr,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct RoomConfig {
     pub jwt: JwtConfig,
     #[serde(with = "humantime_serde")]
     pub invite_duration: Duration,
+    pub block_size: usize,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]

@@ -1,15 +1,11 @@
-use std::borrow::Cow;
-
-use jsonrpsee::types::{
-    error::{CallError, CALL_EXECUTION_FAILED_CODE, INVALID_PARAMS_CODE},
-    ErrorObject, ErrorObjectOwned,
-};
+use jsonrpsee::types::{ErrorObject, ErrorObjectOwned};
 use serde_json::json;
 
-use crate::{ClientId, InviteId, RoomId};
+use crate::{ClientId, FileId, InviteId, RoomId};
 
-pub const NOT_FOUND_CODE: i32 = -40000;
-pub const PERMISSION_DENIED_CODE: i32 = -40001;
+pub const COMMON_CODE: i32 = -40000;
+pub const NOT_FOUND_CODE: i32 = -40001;
+pub const PERMISSION_DENIED_CODE: i32 = -40002;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RoomError {
@@ -25,16 +21,24 @@ pub enum RoomError {
         invite_id: InviteId,
         room_id: RoomId,
     },
+    #[error("File not found")]
+    FileNotFound { file_id: FileId, room_id: RoomId },
     #[error("Permission denied")]
     PermissionDenied {
         client_id: ClientId,
         room_id: RoomId,
         details: Option<serde_json::Value>,
     },
+    #[error("Room is full")]
+    RoomIsFull { room_id: RoomId, capacity: usize },
+    #[error("Download your own file are not allowed")]
+    DownloadYourOwnFileNotAllowed {
+        client_id: ClientId,
+        file_id: FileId,
+        room_id: RoomId,
+    },
     #[error("Other error")]
     Other(#[from] anyhow::Error),
-    #[error(transparent)]
-    Builtin(#[from] CallError),
 }
 
 impl From<RoomError> for ErrorObjectOwned {
@@ -52,13 +56,11 @@ impl RoomError {
             RoomError::RoomNotFound { .. } => NOT_FOUND_CODE,
             RoomError::ClientNotFound { .. } => NOT_FOUND_CODE,
             RoomError::InviteNotFound { .. } => NOT_FOUND_CODE,
+            RoomError::FileNotFound { .. } => NOT_FOUND_CODE,
             RoomError::PermissionDenied { .. } => PERMISSION_DENIED_CODE,
-            RoomError::Other(_) => CALL_EXECUTION_FAILED_CODE,
-            RoomError::Builtin(err) => match err {
-                CallError::InvalidParams(_) => INVALID_PARAMS_CODE,
-                CallError::Failed(_) => CALL_EXECUTION_FAILED_CODE,
-                CallError::Custom(err) => err.code(),
-            },
+            RoomError::RoomIsFull { .. } => COMMON_CODE,
+            RoomError::DownloadYourOwnFileNotAllowed { .. } => COMMON_CODE,
+            RoomError::Other(_) => COMMON_CODE,
         }
     }
 
@@ -75,6 +77,9 @@ impl RoomError {
             RoomError::InviteNotFound { invite_id, room_id } => {
                 Some(json!({ "invite_id": invite_id, "room_id": room_id }))
             }
+            RoomError::FileNotFound { file_id, room_id } => {
+                Some(json!({ "file_id": file_id, "room_id": room_id }))
+            }
             RoomError::PermissionDenied {
                 client_id,
                 room_id,
@@ -84,15 +89,19 @@ impl RoomError {
                 "room_id": room_id,
                 "details": details,
             })),
+            RoomError::RoomIsFull { room_id, capacity } => {
+                Some(json!({ "room_id": room_id, "capacity": capacity }))
+            }
+            RoomError::DownloadYourOwnFileNotAllowed {
+                client_id,
+                file_id,
+                room_id,
+            } => Some(json!({
+                "client_id": client_id,
+                "file_id": file_id,
+                "room_id": room_id,
+            })),
             RoomError::Other(_) => None,
-            RoomError::Builtin(err) => match err {
-                CallError::InvalidParams(_) => None,
-                CallError::Failed(_) => None,
-                // TODO: optimize allocation
-                CallError::Custom(err) => {
-                    err.data().and_then(|v| serde_json::from_str(v.get()).ok())
-                }
-            },
         }
     }
 }
