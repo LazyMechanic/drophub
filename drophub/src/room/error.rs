@@ -103,7 +103,7 @@ impl RoomError {
             } => Some(json!({
                 "client_id": client_id,
                 "room_id": room_id,
-                "details": details,
+                "details": details
             })),
             RoomError::RoomIsFull { room_id, capacity } => {
                 Some(json!({ "room_id": room_id, "capacity": capacity }))
@@ -115,13 +115,13 @@ impl RoomError {
             } => Some(json!({
                 "client_id": client_id,
                 "file_id": file_id,
-                "room_id": room_id,
+                "room_id": room_id
             })),
             RoomError::DownloadProcessAlreadyDone {
                 download_id,
                 room_id,
             } => Some(json!({ "download_id": download_id, "room_id": room_id })),
-            RoomError::Other(_) => None,
+            RoomError::Other(err) => Some(json!({ "details": format!("{:#}", err) })),
         }
     }
 }

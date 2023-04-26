@@ -59,6 +59,7 @@ pub struct AccessToken {
     pub client_id: ClientId,
     pub room_id: RoomId,
     pub role: ClientRole,
+    #[serde(with = "jwt_numeric_date")]
     pub exp: Option<OffsetDateTime>,
 }
 
@@ -77,6 +78,7 @@ impl AccessToken {
 
     /// Decodes token from JWT format.
     pub fn decode(secret: &str, token: &str) -> Result<Self, JwtError> {
+        tracing::debug!(?token, "AccessToken >>>>");
         let tok = jsonwebtoken::decode::<Self>(
             token,
             &DecodingKey::from_secret(secret.as_bytes()),
@@ -100,6 +102,7 @@ impl AccessToken {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct RefreshToken {
     pub token: Uuid,
+    #[serde(with = "jwt_numeric_date")]
     pub exp: Option<OffsetDateTime>,
 }
 
@@ -117,6 +120,7 @@ impl RefreshToken {
 
     /// Decodes token from base64 encoded json.
     pub fn decode(token: &str) -> Result<Self, JwtError> {
+        tracing::debug!(?token, "RefreshToken >>>>");
         let tok_b64 = B64_ENGINE.decode(token)?;
         let tok = serde_json::from_slice::<Self>(&tok_b64)?;
 
@@ -129,5 +133,37 @@ impl RefreshToken {
             None => false,
             Some(exp) => OffsetDateTime::now_utc() >= exp,
         }
+    }
+}
+
+mod jwt_numeric_date {
+    //! Custom serialization of OffsetDateTime to conform with the JWT spec (RFC 7519 section 2, "Numeric Date")
+    use serde::{self, Deserialize, Deserializer, Serializer};
+    use time::OffsetDateTime;
+
+    /// Serializes an OffsetDateTime to a Unix timestamp (milliseconds since 1970/1/1T00:00:00T)
+    pub fn serialize<S>(date: &Option<OffsetDateTime>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match date {
+            None => serializer.serialize_none(),
+            Some(date) => {
+                let timestamp = date.unix_timestamp();
+                serializer.serialize_i64(timestamp)
+            }
+        }
+    }
+
+    /// Attempts to deserialize an i64 and use as a Unix timestamp
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<OffsetDateTime>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let Some(ts ) = Option::<i64>::deserialize(deserializer)? else { return Ok(None) };
+        let dt = OffsetDateTime::from_unix_timestamp(ts)
+            .map_err(|_| serde::de::Error::custom("invalid Unix timestamp value"))?;
+
+        Ok(Some(dt))
     }
 }

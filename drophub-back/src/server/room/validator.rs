@@ -2,7 +2,6 @@ use std::borrow::{Borrow, BorrowMut};
 
 use drophub::{ClientId, FileId, RoomError};
 use serde_json::json;
-use time::OffsetDateTime;
 
 use crate::{
     jwt::{ClientRole, Jwt},

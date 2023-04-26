@@ -6,8 +6,7 @@ mod server;
 mod test_utils;
 
 use clap::Parser;
-use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
-use tracing_subscriber::{layer::SubscriberExt, Registry};
+use tracing_subscriber::EnvFilter;
 
 use crate::{cli::Cli, config::Config};
 
@@ -18,12 +17,16 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn init_logging() -> anyhow::Result<()> {
-    let formatting_layer =
-        BunyanFormattingLayer::new(env!("CARGO_PKG_NAME").to_owned(), std::io::stdout);
-    let subscriber = Registry::default()
-        .with(JsonStorageLayer)
-        .with(formatting_layer);
-    tracing::subscriber::set_global_default(subscriber)?;
+    // let formatting_layer =
+    //     BunyanFormattingLayer::new(env!("CARGO_PKG_NAME").to_owned(), std::io::stdout);
+    // let subscriber = Registry::default()
+    //     .with(JsonStorageLayer)
+    //     .with(formatting_layer);
+    // tracing::subscriber::set_global_default(subscriber)?;
+
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
 
     Ok(())
 }

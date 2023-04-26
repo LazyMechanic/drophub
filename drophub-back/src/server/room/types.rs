@@ -113,6 +113,7 @@ impl Room {
             strict: true,
         };
 
+        // TODO: generate UNIQUE id
         let invite_id = id_gen.generate_one().map_err(|err| anyhow!("{}", err))?;
 
         Ok(Invite {
