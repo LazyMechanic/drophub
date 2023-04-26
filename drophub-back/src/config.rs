@@ -20,15 +20,23 @@ pub struct RoomConfig {
     pub jwt: JwtConfig,
     #[serde(with = "humantime_serde")]
     pub invite_duration: Duration,
+    /// File block size in bytes.
+    #[serde(default = "RoomConfig::def_block_size")]
     pub block_size: usize,
+}
+
+impl RoomConfig {
+    fn def_block_size() -> usize {
+        8192
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct JwtConfig {
     pub token_secret: String,
-    #[serde(with = "humantime_serde")]
+    #[serde(default, with = "humantime_serde")]
     pub access_token_duration: Option<Duration>,
-    #[serde(with = "humantime_serde")]
+    #[serde(default, with = "humantime_serde")]
     pub refresh_token_duration: Option<Duration>,
 }
 
