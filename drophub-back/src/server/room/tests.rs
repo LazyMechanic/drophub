@@ -1,5 +1,5 @@
 use assert_matches::assert_matches;
-use drophub::{ClientEvent, RoomInfo, RoomOptions, RoomRpcClient};
+use drophub::{ClientEvent, RoomOptions, RoomRpcClient};
 use jsonrpsee::ws_client::WsClientBuilder;
 
 use crate::{server, test_utils};

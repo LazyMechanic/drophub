@@ -31,6 +31,7 @@ impl Default for RoomOptions {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct RoomInfo {
+    pub room_id: RoomId,
     pub host_id: ClientId,
     pub files: HashMap<FileId, FileMeta>,
     pub clients: Vec<ClientId>,

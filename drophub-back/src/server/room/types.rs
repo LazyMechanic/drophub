@@ -81,6 +81,7 @@ impl Room {
 
     pub fn info(&mut self) -> RoomInfo {
         RoomInfo {
+            room_id: self.id,
             host_id: self.host_id,
             files: self
                 .files
