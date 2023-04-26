@@ -59,7 +59,7 @@ pub struct AccessToken {
     pub client_id: ClientId,
     pub room_id: RoomId,
     pub role: ClientRole,
-    pub exp: OffsetDateTime,
+    pub exp: Option<OffsetDateTime>,
 }
 
 impl AccessToken {
@@ -87,13 +87,20 @@ impl AccessToken {
         tracing::debug!("decoded access token: {:?}", tok);
         Ok(tok)
     }
+
+    pub fn is_expired(&self) -> bool {
+        match self.exp {
+            None => false,
+            Some(exp) => OffsetDateTime::now_utc() >= exp,
+        }
+    }
 }
 
 /// Token to refreshing access token.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct RefreshToken {
     pub token: Uuid,
-    pub exp: OffsetDateTime,
+    pub exp: Option<OffsetDateTime>,
 }
 
 impl RefreshToken {
@@ -115,5 +122,12 @@ impl RefreshToken {
 
         tracing::debug!("decoded refresh token: {:?}", tok);
         Ok(tok)
+    }
+
+    pub fn is_expired(&self) -> bool {
+        match self.exp {
+            None => false,
+            Some(exp) => OffsetDateTime::now_utc() >= exp,
+        }
     }
 }

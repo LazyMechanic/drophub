@@ -27,9 +27,9 @@ pub struct RoomConfig {
 pub struct JwtConfig {
     pub token_secret: String,
     #[serde(with = "humantime_serde")]
-    pub access_token_duration: Duration,
+    pub access_token_duration: Option<Duration>,
     #[serde(with = "humantime_serde")]
-    pub refresh_token_duration: Duration,
+    pub refresh_token_duration: Option<Duration>,
 }
 
 impl Config {

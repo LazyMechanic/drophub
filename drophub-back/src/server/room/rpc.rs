@@ -227,11 +227,21 @@ impl RoomRpcServer for RoomRpc {
                 client_id,
                 room_id: room.id,
                 role: client_role,
-                exp: OffsetDateTime::now_utc().add(self.cfg.jwt.access_token_duration),
+                exp: self
+                    .cfg
+                    .jwt
+                    .access_token_duration
+                    .clone()
+                    .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
             refresh_token: RefreshToken {
                 token: Uuid::new_v4(),
-                exp: OffsetDateTime::now_utc().add(self.cfg.jwt.refresh_token_duration),
+                exp: self
+                    .cfg
+                    .jwt
+                    .refresh_token_duration
+                    .clone()
+                    .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
         }
         .encode(&self.cfg.jwt.token_secret)?;

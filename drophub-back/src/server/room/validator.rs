@@ -96,7 +96,7 @@ where
     }
 
     fn check_jwt(&self) -> Result<(), RoomError> {
-        if self.jwt.access_token.exp > OffsetDateTime::now_utc() {
+        if self.jwt.access_token.is_expired() {
             return Err(RoomError::PermissionDenied {
                 client_id: self.jwt.access_token.client_id,
                 room_id: self.jwt.access_token.room_id,

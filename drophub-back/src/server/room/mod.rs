@@ -1,4 +1,6 @@
 mod rpc;
+#[cfg(test)]
+mod tests;
 mod types;
 mod validator;
 
