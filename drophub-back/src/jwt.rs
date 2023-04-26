@@ -78,23 +78,21 @@ impl AccessToken {
 
     /// Decodes token from JWT format.
     pub fn decode(secret: &str, token: &str) -> Result<Self, JwtError> {
-        tracing::debug!(?token, "AccessToken >>>>");
+        let validation = {
+            let mut v = Validation::default();
+            v.set_required_spec_claims::<&str>(&[]);
+            v
+        };
+
         let tok = jsonwebtoken::decode::<Self>(
             token,
             &DecodingKey::from_secret(secret.as_bytes()),
-            &Validation::default(),
+            &validation,
         )
         .map(|token_data| token_data.claims)?;
 
         tracing::debug!("decoded access token: {:?}", tok);
         Ok(tok)
-    }
-
-    pub fn is_expired(&self) -> bool {
-        match self.exp {
-            None => false,
-            Some(exp) => OffsetDateTime::now_utc() >= exp,
-        }
     }
 }
 
@@ -120,19 +118,11 @@ impl RefreshToken {
 
     /// Decodes token from base64 encoded json.
     pub fn decode(token: &str) -> Result<Self, JwtError> {
-        tracing::debug!(?token, "RefreshToken >>>>");
         let tok_b64 = B64_ENGINE.decode(token)?;
         let tok = serde_json::from_slice::<Self>(&tok_b64)?;
 
         tracing::debug!("decoded refresh token: {:?}", tok);
         Ok(tok)
-    }
-
-    pub fn is_expired(&self) -> bool {
-        match self.exp {
-            None => false,
-            Some(exp) => OffsetDateTime::now_utc() >= exp,
-        }
     }
 }
 

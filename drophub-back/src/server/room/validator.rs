@@ -94,18 +94,6 @@ where
         Ok(())
     }
 
-    fn check_jwt(&self) -> Result<(), RoomError> {
-        if self.jwt.access_token.is_expired() {
-            return Err(RoomError::PermissionDenied {
-                client_id: self.jwt.access_token.client_id,
-                room_id: self.jwt.access_token.room_id,
-                details: Some(json!({ "details": "JWT access token expired" })),
-            });
-        }
-
-        Ok(())
-    }
-
     fn check_kick_yourself(&self, client_id: ClientId) -> Result<(), RoomError> {
         // TODO: kick yourself and switch roles with a random client?
         if self.jwt.access_token.client_id == client_id {
@@ -144,36 +132,30 @@ where
     R: Borrow<Room>,
 {
     fn validate_revoke_invite(&self) -> Result<(), RoomError> {
-        self.check_jwt()?;
         self.check_host_only()?;
         Ok(())
     }
 
     fn validate_kick(&self, client_id: ClientId) -> Result<(), RoomError> {
-        self.check_jwt()?;
         self.check_host_only()?;
         self.check_kick_yourself(client_id)?;
         Ok(())
     }
 
     fn validate_announce_file(&self) -> Result<(), RoomError> {
-        self.check_jwt()?;
         Ok(())
     }
 
     fn validate_remove_file(&self, file_id: FileId) -> Result<(), RoomError> {
-        self.check_jwt()?;
         self.check_remove_file(file_id)?;
         Ok(())
     }
 
     fn validate_upload_file(&self) -> Result<(), RoomError> {
-        self.check_jwt()?;
         Ok(())
     }
 
     fn validate_sub_download(&self, file_id: FileId) -> Result<(), RoomError> {
-        self.check_jwt()?;
         self.check_download_file(file_id)?;
         Ok(())
     }
@@ -184,7 +166,6 @@ where
     R: BorrowMut<Room>,
 {
     fn validate_invite(&mut self) -> Result<(), RoomError> {
-        self.check_jwt()?;
         self.check_host_only()?;
         self.check_capacity()?;
         Ok(())

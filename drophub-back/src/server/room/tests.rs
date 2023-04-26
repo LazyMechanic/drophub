@@ -54,3 +54,128 @@ async fn connect() {
     // Connect by used invite
     assert_matches!(client.connect(room_info.room_id, invite.id).await, Err(_));
 }
+
+#[tokio::test]
+async fn invite() {
+    let cfg = test_utils::test_config();
+    let (addr, _h) = server::run(&cfg).await.unwrap();
+    let client = WsClientBuilder::default()
+        .build(format!("ws://{addr}"))
+        .await
+        .unwrap();
+
+    let mut host_sub = client
+        .create(RoomOptions {
+            encryption: false,
+            capacity: 2,
+        })
+        .await
+        .unwrap();
+
+    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
+
+    // Success connect via invite
+    let invite = client.invite(host_jwt.clone()).await.unwrap();
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
+
+    let mut guest_sub = client.connect(invite.room_id, invite.id).await.unwrap();
+    let ClientEvent::Init(guest_jwt) = guest_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0 && info.clients.len() == 2);
+    assert_matches!(guest_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0 && info.clients.len() == 2);
+
+    // Try create invite by guest
+    assert_matches!(client.invite(guest_jwt).await, Err(_));
+
+    // Maximum invites reached
+    assert_matches!(client.invite(host_jwt).await, Err(_));
+}
+
+#[tokio::test]
+async fn invite_revoke() {
+    let cfg = test_utils::test_config();
+    let (addr, _h) = server::run(&cfg).await.unwrap();
+    let client = WsClientBuilder::default()
+        .build(format!("ws://{addr}"))
+        .await
+        .unwrap();
+
+    let mut host_sub = client
+        .create(RoomOptions {
+            encryption: false,
+            capacity: 3,
+        })
+        .await
+        .unwrap();
+
+    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
+
+    let invite1 = client.invite(host_jwt.clone()).await.unwrap();
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
+
+    let invite2 = client.invite(host_jwt.clone()).await.unwrap();
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 2);
+
+    assert_matches!(client.invite(host_jwt.clone()).await, Err(_));
+
+    assert_matches!(
+        client.revoke_invite(host_jwt.clone(), invite1.id).await,
+        Ok(_)
+    );
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
+
+    assert_matches!(
+        client.revoke_invite(host_jwt.clone(), invite2.id).await,
+        Ok(_)
+    );
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0);
+
+    assert_matches!(
+        client.revoke_invite(host_jwt.clone(), "123".into()).await,
+        Err(_)
+    );
+}
+
+#[tokio::test]
+async fn kick() {
+    let cfg = test_utils::test_config();
+    let (addr, _h) = server::run(&cfg).await.unwrap();
+    let client = WsClientBuilder::default()
+        .build(format!("ws://{addr}"))
+        .await
+        .unwrap();
+
+    let mut host_sub = client.create(RoomOptions::default()).await.unwrap();
+
+    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
+
+    let invite = client.invite(host_jwt.clone()).await.unwrap();
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
+    let mut guest1_sub = client
+        .connect(invite.room_id, invite.id.clone())
+        .await
+        .unwrap();
+    assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::Init(_))));
+    assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.clients.len() == 2);
+    let ClientEvent::RoomInfo(room_info) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+
+    assert_matches!(
+        client
+            .kick(
+                host_jwt.clone(),
+                room_info
+                    .clients
+                    .into_iter()
+                    .filter(|c| c != &room_info.host_id)
+                    .next()
+                    .unwrap(),
+            )
+            .await,
+        Ok(_)
+    );
+
+    assert_matches!(client.kick(host_jwt, room_info.host_id).await, Err(_));
+}
