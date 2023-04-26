@@ -1,0 +1,10 @@
+server:
+  bind_addr: "0.0.0.0:0"
+
+room:
+  jwt:
+    token_secret: "12345"
+    #access_token_duration: "5s"
+    #refresh_token_duration: "5s"
+  invite_duration: "5m"
+  #block_size: 8192
