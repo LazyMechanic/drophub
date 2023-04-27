@@ -51,17 +51,11 @@ where
     }
 
     fn check_file_owner(&self, file_id: FileId) -> Result<(), RoomError> {
-        let file = self
+        if !self
             .room
             .borrow()
-            .files
-            .get(&file_id)
-            .ok_or(RoomError::FileNotFound {
-                file_id,
-                room_id: self.jwt.access_token.room_id,
-            })?;
-
-        if self.jwt.access_token.client_id != file.owner {
+            .is_file_owner(file_id, self.jwt.access_token.client_id)?
+        {
             return Err(RoomError::PermissionDenied {
                 client_id: self.jwt.access_token.client_id,
                 room_id: self.jwt.access_token.room_id,
@@ -73,17 +67,11 @@ where
     }
 
     fn check_download_file(&self, file_id: FileId) -> Result<(), RoomError> {
-        let file = self
+        if self
             .room
             .borrow()
-            .files
-            .get(&file_id)
-            .ok_or(RoomError::FileNotFound {
-                file_id,
-                room_id: self.jwt.access_token.room_id,
-            })?;
-
-        if self.jwt.access_token.client_id == file.owner {
+            .is_file_owner(file_id, self.jwt.access_token.client_id)?
+        {
             return Err(RoomError::DownloadYourOwnFileNotAllowed {
                 client_id: self.jwt.access_token.client_id,
                 file_id,
@@ -108,10 +96,10 @@ where
     }
 
     fn check_file_exists(&self, file_id: FileId) -> Result<(), RoomError> {
-        if self.room.borrow().files.contains_key(&file_id) {
+        if self.room.borrow().is_file_exists(file_id) {
             return Err(RoomError::FileAlreadyExists {
                 file_id,
-                room_id: self.room.borrow().id,
+                room_id: self.room.borrow().id(),
             });
         }
 
@@ -124,13 +112,10 @@ where
     R: BorrowMut<Room>,
 {
     fn check_capacity(&mut self) -> Result<(), RoomError> {
-        // TODO: optimize
-        if self.room.borrow_mut().invites.iter().count() + self.room.borrow().clients.len()
-            >= self.room.borrow().capacity
-        {
+        if self.room.borrow_mut().is_full() {
             return Err(RoomError::RoomIsFull {
                 room_id: self.jwt.access_token.room_id,
-                capacity: self.room.borrow().capacity,
+                capacity: self.room.borrow().capacity(),
             });
         }
 

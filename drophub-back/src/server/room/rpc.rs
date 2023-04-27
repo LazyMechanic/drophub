@@ -2,10 +2,7 @@
 
 use std::{ops::Add, pin::pin};
 
-use dashmap::{
-    mapref::one::{Ref, RefMut},
-    DashMap,
-};
+use dashmap::{mapref::one::RefMut, DashMap};
 use drophub::{
     ClientEvent, ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InviteId,
     JwtEncoded, RoomError, RoomId, RoomOptions, RoomRpcServer,
@@ -41,12 +38,6 @@ impl RoomRpc {
             rooms: Default::default(),
             cfg: cfg.room.clone(),
         }
-    }
-
-    fn get_room(&self, room_id: RoomId) -> Result<Ref<'_, RoomId, Room>, RoomError> {
-        self.rooms
-            .get(&room_id)
-            .ok_or(RoomError::RoomNotFound { room_id })
     }
 
     fn get_room_mut(&self, room_id: RoomId) -> Result<RefMut<'_, RoomId, Room>, RoomError> {
@@ -103,7 +94,7 @@ impl RoomRpcServer for RoomRpc {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         let file = File::new(file_meta, jwt.access_token.client_id);
-        let file_id = file.id;
+        let file_id = file.id();
         RoomValidator::new(&jwt, &*room).validate_announce_file(file_id)?;
 
         room.add_file(file)?;
@@ -150,8 +141,8 @@ impl RoomRpcServer for RoomRpc {
 
         let (upload_tx, mut upload_rx) = mpsc::unbounded_channel();
         let client = Client::new(ClientRole::Host, upload_tx);
-        let client_role = client.role;
-        let client_id = client.id;
+        let client_role = client.role();
+        let client_id = client.id();
         let mut room = Room::new(options, client, &self.cfg);
 
         let host_jwt = Jwt {
@@ -237,13 +228,13 @@ impl RoomRpcServer for RoomRpc {
     ) -> SubscriptionResult {
         let (upload_tx, mut upload_rx) = mpsc::unbounded_channel();
         let client = Client::new(ClientRole::Guest, upload_tx);
-        let client_id = client.id;
+        let client_id = client.id();
 
         let guest_jwt = Jwt {
             access_token: AccessToken {
                 client_id,
                 room_id,
-                role: client.role,
+                role: client.role(),
                 exp: self
                     .cfg
                     .jwt

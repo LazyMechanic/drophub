@@ -25,7 +25,7 @@ pub enum RoomError {
     FileNotFound { file_id: FileId, room_id: RoomId },
     #[error("Download process not found")]
     DownloadProcessNotFound {
-        download_id: DownloadProcId,
+        download_proc_id: DownloadProcId,
         room_id: RoomId,
     },
     #[error("Permission denied")]
@@ -40,11 +40,6 @@ pub enum RoomError {
     DownloadYourOwnFileNotAllowed {
         client_id: ClientId,
         file_id: FileId,
-        room_id: RoomId,
-    },
-    #[error("Download process already done")]
-    DownloadProcessAlreadyDone {
-        download_id: DownloadProcId,
         room_id: RoomId,
     },
     #[error("File already exists")]
@@ -73,7 +68,6 @@ impl RoomError {
             RoomError::PermissionDenied { .. } => PERMISSION_DENIED_CODE,
             RoomError::RoomIsFull { .. } => COMMON_CODE,
             RoomError::DownloadYourOwnFileNotAllowed { .. } => COMMON_CODE,
-            RoomError::DownloadProcessAlreadyDone { .. } => COMMON_CODE,
             RoomError::FileAlreadyExists { .. } => COMMON_CODE,
             RoomError::Other(_) => COMMON_CODE,
         }
@@ -96,9 +90,9 @@ impl RoomError {
                 Some(json!({ "file_id": file_id, "room_id": room_id }))
             }
             RoomError::DownloadProcessNotFound {
-                download_id,
+                download_proc_id,
                 room_id,
-            } => Some(json!({ "download_id": download_id, "room_id": room_id })),
+            } => Some(json!({ "download_proc_id": download_proc_id, "room_id": room_id })),
             RoomError::PermissionDenied {
                 client_id,
                 room_id,
@@ -120,10 +114,6 @@ impl RoomError {
                 "file_id": file_id,
                 "room_id": room_id
             })),
-            RoomError::DownloadProcessAlreadyDone {
-                download_id,
-                room_id,
-            } => Some(json!({ "download_id": download_id, "room_id": room_id })),
             RoomError::FileAlreadyExists { file_id, room_id } => {
                 Some(json!({ "file_id": file_id, "room_id": room_id }))
             }
