@@ -91,12 +91,18 @@ impl Room {
         self.id
     }
 
+    pub fn host_id(&self) -> ClientId {
+        self.host_id
+    }
+
     pub fn capacity(&self) -> usize {
         self.capacity
     }
 
     pub fn broadcast_info(&mut self) -> Result<(), RoomError> {
         let room_info = self.info();
+        tracing::info!(?room_info, "Broadcast room info");
+
         self.info_tx
             .send(room_info)
             .map_err(|_| anyhow!("Room info channel closed"))?;
@@ -201,7 +207,20 @@ impl Room {
         file_data: FileData,
         download_proc_id: DownloadProcId,
     ) -> Result<(), RoomError> {
+        let block_size = self.block_size;
         let download_proc = self.get_download_proc_mut(download_proc_id)?;
+
+        if file_data.len() > block_size
+            || (file_data.len() < block_size && !download_proc.is_last_block())
+        {
+            return Err(RoomError::InvalidFileBlockSize {
+                file_id: download_proc.file_id,
+                recv_block_size: file_data.len(),
+                exp_block_size: block_size,
+                room_id: self.id,
+            });
+        }
+
         let status = download_proc.send_data(file_data).await?;
 
         match status {
@@ -224,11 +243,19 @@ impl Room {
         file_id: FileId,
     ) -> Result<(DownloadProcId, mpsc::Receiver<FileData>), RoomError> {
         let file = self.get_file(file_id)?;
+        let file_owner = self.get_client(file.owner)?;
 
         let (data_tx, data_rx) = mpsc::channel(1);
         let download_proc = DownloadProc::new(file_id, file.meta.size, self.block_size, data_tx);
+        tracing::info!(?download_proc, "Init download process");
 
         let download_proc_id = download_proc.id;
+        file_owner.req_upload(UploadRequest {
+            download_proc_id,
+            file_id,
+            block_idx: 0,
+        })?;
+
         self.downloads.insert(download_proc.id, download_proc);
 
         Ok((download_proc_id, data_rx))
@@ -400,8 +427,12 @@ impl DownloadProc {
         }
     }
 
+    fn is_last_block(&self) -> bool {
+        self.next_block_idx + 1 == self.blocks_count
+    }
+
     async fn send_data(&mut self, file_data: FileData) -> Result<FileStatus, RoomError> {
-        if self.next_block_idx >= self.blocks_count {
+        if self.next_block_idx == self.blocks_count {
             return Ok(FileStatus::FullUploaded);
         }
 
@@ -412,12 +443,12 @@ impl DownloadProc {
 
         self.next_block_idx += 1;
 
-        if self.next_block_idx >= self.blocks_count {
+        if self.next_block_idx == self.blocks_count {
             Ok(FileStatus::FullUploaded)
         } else {
             Ok(FileStatus::InProcess {
                 next_req: UploadRequest {
-                    download_id: self.id,
+                    download_proc_id: self.id,
                     file_id: self.file_id,
                     block_idx: self.next_block_idx,
                 },

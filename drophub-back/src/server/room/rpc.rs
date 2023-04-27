@@ -14,7 +14,7 @@ use jsonrpsee::{
 use scopeguard::defer;
 use time::OffsetDateTime;
 use tokio::sync::{broadcast::error::RecvError, mpsc};
-use tracing::instrument;
+use tracing::{instrument, Instrument};
 use uuid::Uuid;
 
 use crate::{
@@ -50,20 +50,25 @@ impl RoomRpc {
 #[async_trait]
 impl RoomRpcServer for RoomRpc {
     #[instrument(skip(self, jwt), err(Debug))]
-    async fn invite(&self, jwt: JwtEncoded) -> Result<Invite, RoomError> {
+    fn invite(&self, jwt: JwtEncoded) -> Result<Invite, RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
+        let _span = jwt.span().enter();
+
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         RoomValidator::new(&jwt, &mut *room).validate_invite()?;
 
         let invite = room.generate_invite()?;
+        tracing::info!(?invite, "Invite created");
         room.broadcast_info()?;
 
         Ok(invite)
     }
 
     #[instrument(skip(self, jwt), err(Debug))]
-    async fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InviteId) -> Result<(), RoomError> {
+    fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InviteId) -> Result<(), RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
+        let _span = jwt.span().enter();
+
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         RoomValidator::new(&jwt, &*room).validate_revoke_invite()?;
 
@@ -74,8 +79,10 @@ impl RoomRpcServer for RoomRpc {
     }
 
     #[instrument(skip(self, jwt), err(Debug))]
-    async fn kick(&self, jwt: JwtEncoded, client_id: ClientId) -> Result<(), RoomError> {
+    fn kick(&self, jwt: JwtEncoded, client_id: ClientId) -> Result<(), RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
+        let _span = jwt.span().enter();
+
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         RoomValidator::new(&jwt, &*room).validate_kick(client_id)?;
 
@@ -86,12 +93,10 @@ impl RoomRpcServer for RoomRpc {
     }
 
     #[instrument(skip(self, jwt), err(Debug))]
-    async fn announce_file(
-        &self,
-        jwt: JwtEncoded,
-        file_meta: FileMeta,
-    ) -> Result<FileId, RoomError> {
+    fn announce_file(&self, jwt: JwtEncoded, file_meta: FileMeta) -> Result<FileId, RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
+        let _span = jwt.span().enter();
+
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         let file = File::new(file_meta, jwt.access_token.client_id);
         let file_id = file.id();
@@ -104,8 +109,10 @@ impl RoomRpcServer for RoomRpc {
     }
 
     #[instrument(skip(self, jwt), err(Debug))]
-    async fn remove_file(&self, jwt: JwtEncoded, file_id: FileId) -> Result<(), RoomError> {
+    fn remove_file(&self, jwt: JwtEncoded, file_id: FileId) -> Result<(), RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
+        let _span = jwt.span().enter();
+
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         RoomValidator::new(&jwt, &*room).validate_remove_file(file_id)?;
 
@@ -115,20 +122,26 @@ impl RoomRpcServer for RoomRpc {
         Ok(())
     }
 
-    #[instrument(skip(self, jwt, file_data), err(Debug))]
+    #[instrument(skip(self, jwt, file_data), fields(file_data_len = file_data.len()) err(Debug))]
     async fn upload_file(
         &self,
         jwt: JwtEncoded,
         file_data: FileData,
-        download_id: DownloadProcId,
+        download_proc_id: DownloadProcId,
     ) -> Result<(), RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
-        let mut room = self.get_room_mut(jwt.access_token.room_id)?;
-        RoomValidator::new(&jwt, &*room).validate_upload_file()?;
+        let span = jwt.span().clone();
 
-        room.send_file(file_data, download_id).await?;
+        async move {
+            let mut room = self.get_room_mut(jwt.access_token.room_id)?;
+            RoomValidator::new(&jwt, &*room).validate_upload_file()?;
 
-        Ok(())
+            room.send_file(file_data, download_proc_id).await?;
+
+            Ok(())
+        }
+        .instrument(span)
+        .await
     }
 
     #[instrument(skip(self, subscription_sink), err(Debug))]
@@ -145,8 +158,8 @@ impl RoomRpcServer for RoomRpc {
         let client_id = client.id();
         let mut room = Room::new(options, client, &self.cfg);
 
-        let host_jwt = Jwt {
-            access_token: AccessToken {
+        let host_jwt = Jwt::new(
+            AccessToken {
                 client_id,
                 room_id: room.id(),
                 role: client_role,
@@ -157,7 +170,7 @@ impl RoomRpcServer for RoomRpc {
                     .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
-            refresh_token: RefreshToken {
+            RefreshToken {
                 token: Uuid::new_v4(),
                 exp: self
                     .cfg
@@ -166,57 +179,69 @@ impl RoomRpcServer for RoomRpc {
                     .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
-        }
-        .encode(&self.cfg.jwt.token_secret)?;
+        );
+        let span = host_jwt.span().clone();
 
-        let mut room_rx = {
-            let room_rx = room.subscribe();
-            room.broadcast_info()?;
-            room_rx
-        };
+        async move {
+            let host_jwt = host_jwt.encode(&self.cfg.jwt.token_secret)?;
 
-        let room_id = room.id();
-        self.rooms.insert(room_id, room);
-        // Remove room on disconnect
-        defer! { self.rooms.remove(&room_id); }
+            let mut room_rx = {
+                let room_rx = room.subscribe();
+                room.broadcast_info()?;
+                room_rx
+            };
 
-        let sink = subscription_sink.accept().await?;
-        let mut sink_closed = pin!(sink.closed());
+            let room_id = room.id();
+            let room_host_id = room.host_id();
+            self.rooms.insert(room_id, room);
+            tracing::info!(?room_id, ?room_host_id, "Room created");
 
-        sink.send(ClientEvent::Init(host_jwt).try_into()?).await?;
+            // Remove room on disconnect
+            defer! {
+                self.rooms.remove(&room_id);
+                tracing::info!(?room_id, "Room removed");
+            }
 
-        loop {
-            tokio::select! {
-                _ = &mut sink_closed => {
-                    tracing::debug!("Subscription sink closed");
-                    break Ok(());
+            let sink = subscription_sink.accept().await?;
+            let mut sink_closed = pin!(sink.closed());
+
+            sink.send(ClientEvent::Init(host_jwt).try_into()?).await?;
+
+            loop {
+                tokio::select! {
+                    _ = &mut sink_closed => {
+                        tracing::debug!("Subscription sink closed");
+                        break Ok(());
+                    }
+                    maybe_room_info = room_rx.recv() => match maybe_room_info {
+                        Ok(room_info) => {
+                            tracing::debug!(?room_info, "Received room info");
+                            sink.send(ClientEvent::RoomInfo(room_info).try_into()?).await?;
+                        }
+                        Err(err @ RecvError::Lagged(_)) => {
+                            tracing::warn!(?err, "Received lag");
+                            continue;
+                        }
+                        Err(RecvError::Closed) => {
+                            tracing::debug!("Room closed (room info channel closed)");
+                            break Ok(());
+                        }
+                    },
+                    maybe_upload_req = upload_rx.recv() => match maybe_upload_req {
+                        Some(upload_req) => {
+                            tracing::debug!(?upload_req, "Received upload request");
+                            sink.send(ClientEvent::UploadRequest(upload_req).try_into()?).await?;
+                        }
+                        None => {
+                            tracing::debug!("Client kicked (upload request channel closed)");
+                            break Ok(());
+                        }
+                    },
                 }
-                maybe_room_info = room_rx.recv() => match maybe_room_info {
-                    Ok(room_info) => {
-                        tracing::debug!(?room_info, "Received room info");
-                        sink.send(ClientEvent::RoomInfo(room_info).try_into()?).await?;
-                    }
-                    Err(err @ RecvError::Lagged(_)) => {
-                        tracing::warn!(?err, "Received lag");
-                        continue;
-                    }
-                    Err(RecvError::Closed) => {
-                        tracing::debug!("Room closed (room info channel closed)");
-                        break Ok(());
-                    }
-                },
-                maybe_upload_req = upload_rx.recv() => match maybe_upload_req {
-                    Some(upload_req) => {
-                        tracing::debug!(?upload_req, "Received upload request");
-                        sink.send(ClientEvent::UploadRequest(upload_req).try_into()?).await?;
-                    }
-                    None => {
-                        tracing::debug!("Client kicked (upload request channel closed)");
-                        break Ok(());
-                    }
-                },
             }
         }
+        .instrument(span)
+        .await
     }
 
     #[instrument(skip(self, subscription_sink), err(Debug))]
@@ -230,8 +255,8 @@ impl RoomRpcServer for RoomRpc {
         let client = Client::new(ClientRole::Guest, upload_tx);
         let client_id = client.id();
 
-        let guest_jwt = Jwt {
-            access_token: AccessToken {
+        let guest_jwt = Jwt::new(
+            AccessToken {
                 client_id,
                 room_id,
                 role: client.role(),
@@ -242,7 +267,7 @@ impl RoomRpcServer for RoomRpc {
                     .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
-            refresh_token: RefreshToken {
+            RefreshToken {
                 token: Uuid::new_v4(),
                 exp: self
                     .cfg
@@ -251,60 +276,68 @@ impl RoomRpcServer for RoomRpc {
                     .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
-        }
-        .encode(&self.cfg.jwt.token_secret)?;
+        );
+        let span = guest_jwt.span().clone();
 
-        let mut room_rx = {
-            let mut room = self.get_room_mut(room_id)?;
-            let room_rx = room.add_client(client, invite_id)?;
-            room.broadcast_info()?;
+        async move {
+            let guest_jwt = guest_jwt.encode(&self.cfg.jwt.token_secret)?;
 
-            room_rx
-        };
+            let mut room_rx = {
+                let mut room = self.get_room_mut(room_id)?;
+                let room_rx = room.add_client(client, invite_id)?;
+                tracing::info!(?client_id, "Client connected to room");
+                room.broadcast_info()?;
 
-        // Remove client from room on disconnect
-        defer! {
-            let Some(mut room) = self.rooms.get_mut(&room_id) else { return };
-            let _ = room.remove_client(client_id);
-        }
+                room_rx
+            };
 
-        let sink = subscription_sink.accept().await?;
-        let mut sink_closed = pin!(sink.closed());
+            // Remove client from room on disconnect
+            defer! {
+                let Some(mut room) = self.rooms.get_mut(&room_id) else { return };
+                let _ = room.remove_client(client_id);
+                tracing::info!(?client_id, "Client disconnected");
+            }
 
-        sink.send(ClientEvent::Init(guest_jwt).try_into()?).await?;
+            let sink = subscription_sink.accept().await?;
+            let mut sink_closed = pin!(sink.closed());
 
-        loop {
-            tokio::select! {
-                _ = &mut sink_closed => {
-                    tracing::debug!("Subscription sink closed");
-                    break Ok(());
+            sink.send(ClientEvent::Init(guest_jwt).try_into()?).await?;
+
+            loop {
+                tokio::select! {
+                    _ = &mut sink_closed => {
+                        tracing::debug!("Subscription sink closed");
+                        break Ok(());
+                    }
+                    maybe_room_info = room_rx.recv() => match maybe_room_info {
+                        Ok(room_info) => {
+                            tracing::debug!(?room_info, "Received room info");
+                            sink.send(ClientEvent::RoomInfo(room_info).try_into()?).await?;
+                        }
+                        Err(err @ RecvError::Lagged(_)) => {
+                            tracing::warn!(?err, "Received lag");
+                            continue;
+                        }
+                        Err(RecvError::Closed) => {
+                            tracing::debug!("Room closed (room info channel closed)");
+                            break Ok(());
+                        }
+                    },
+                    maybe_upload_req = upload_rx.recv() => match maybe_upload_req {
+                        Some(upload_req) => {
+                            tracing::debug!(?upload_req, "Received upload request");
+                            sink.send(ClientEvent::UploadRequest(upload_req).try_into()?).await?;
+                        }
+                        None => {
+                            tracing::debug!("Client kicked (upload request channel closed)");
+                            break Ok(());
+                        }
+                    },
                 }
-                maybe_room_info = room_rx.recv() => match maybe_room_info {
-                    Ok(room_info) => {
-                        tracing::debug!(?room_info, "Received room info");
-                        sink.send(ClientEvent::RoomInfo(room_info).try_into()?).await?;
-                    }
-                    Err(err @ RecvError::Lagged(_)) => {
-                        tracing::warn!(?err, "Received lag");
-                        continue;
-                    }
-                    Err(RecvError::Closed) => {
-                        tracing::debug!("Room closed (room info channel closed)");
-                        break Ok(());
-                    }
-                },
-                maybe_upload_req = upload_rx.recv() => match maybe_upload_req {
-                    Some(upload_req) => {
-                        tracing::debug!(?upload_req, "Received upload request");
-                        sink.send(ClientEvent::UploadRequest(upload_req).try_into()?).await?;
-                    }
-                    None => {
-                        tracing::debug!("Client kicked (upload request channel closed)");
-                        break Ok(());
-                    }
-                },
             }
         }
+        .instrument(span)
+        .await
     }
 
     #[instrument(skip(self, jwt, subscription_sink), err(Debug))]
@@ -315,37 +348,43 @@ impl RoomRpcServer for RoomRpc {
         file_id: FileId,
     ) -> SubscriptionResult {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
-        let (download_proc_id, mut data_rx) = {
-            let mut room = self.get_room_mut(jwt.access_token.room_id)?;
-            RoomValidator::new(&jwt, &*room).validate_sub_download(file_id)?;
-            room.start_download_proc(file_id)?
-        };
+        let span = jwt.span().clone();
 
-        defer! {
-            let Some(mut room) = self.rooms.get_mut(&jwt.access_token.room_id) else { return };
-            room.stop_download_proc(download_proc_id)
-        }
+        async move {
+            let (download_proc_id, mut data_rx) = {
+                let mut room = self.get_room_mut(jwt.access_token.room_id)?;
+                RoomValidator::new(&jwt, &*room).validate_sub_download(file_id)?;
+                room.start_download_proc(file_id)?
+            };
 
-        let sink = subscription_sink.accept().await?;
-        let mut sink_closed = pin!(sink.closed());
+            defer! {
+                let Some(mut room) = self.rooms.get_mut(&jwt.access_token.room_id) else { return };
+                room.stop_download_proc(download_proc_id)
+            }
 
-        loop {
-            tokio::select! {
-                _ = &mut sink_closed => {
-                    tracing::debug!("Subscription sink closed");
-                    break Ok(());
-                }
-                maybe_data = data_rx.recv() => match maybe_data {
-                    Some(data) => {
-                        tracing::debug!("Received file data");
-                        sink.send(data.try_into()?).await?;
-                    }
-                    None => {
-                        tracing::debug!("File downloading done");
+            let sink = subscription_sink.accept().await?;
+            let mut sink_closed = pin!(sink.closed());
+
+            loop {
+                tokio::select! {
+                    _ = &mut sink_closed => {
+                        tracing::debug!("Subscription sink closed");
                         break Ok(());
+                    }
+                    maybe_data = data_rx.recv() => match maybe_data {
+                        Some(data) => {
+                            tracing::debug!("Received file data");
+                            sink.send(data.try_into()?).await?;
+                        }
+                        None => {
+                            tracing::debug!("File downloading done");
+                            break Ok(());
+                        }
                     }
                 }
             }
         }
+        .instrument(span)
+        .await
     }
 }

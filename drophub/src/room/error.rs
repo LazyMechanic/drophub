@@ -1,13 +1,15 @@
 use jsonrpsee::types::{ErrorObject, ErrorObjectOwned};
-use serde_json::json;
+use serde::de::Error;
 
 use crate::{ClientId, DownloadProcId, FileId, InviteId, RoomId};
 
 pub const COMMON_CODE: i32 = -40000;
 pub const NOT_FOUND_CODE: i32 = -40001;
 pub const PERMISSION_DENIED_CODE: i32 = -40002;
+pub const INVALID_FILE_BLOCK_SIZE_CODE: i32 = -40003;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind")]
 pub enum RoomError {
     #[error("Room not found")]
     RoomNotFound { room_id: RoomId },
@@ -44,7 +46,15 @@ pub enum RoomError {
     },
     #[error("File already exists")]
     FileAlreadyExists { file_id: FileId, room_id: RoomId },
+    #[error("Invalid file block size")]
+    InvalidFileBlockSize {
+        file_id: FileId,
+        recv_block_size: usize,
+        exp_block_size: usize,
+        room_id: RoomId,
+    },
     #[error("Other error")]
+    #[serde(with = "serde_other_error")]
     Other(#[from] anyhow::Error),
 }
 
@@ -54,6 +64,17 @@ impl From<RoomError> for ErrorObjectOwned {
         let msg = f.jrpc_error_msg();
         let data = f.jrpc_error_data();
         ErrorObject::owned(code, msg, data)
+    }
+}
+
+impl TryFrom<ErrorObjectOwned> for RoomError {
+    type Error = serde_json::Error;
+
+    fn try_from(f: ErrorObjectOwned) -> Result<Self, Self::Error> {
+        let data = f
+            .data()
+            .ok_or_else(|| serde_json::Error::custom("Result does not contain 'data'"))?;
+        serde_json::from_str(data.get())
     }
 }
 
@@ -69,6 +90,7 @@ impl RoomError {
             RoomError::RoomIsFull { .. } => COMMON_CODE,
             RoomError::DownloadYourOwnFileNotAllowed { .. } => COMMON_CODE,
             RoomError::FileAlreadyExists { .. } => COMMON_CODE,
+            RoomError::InvalidFileBlockSize { .. } => INVALID_FILE_BLOCK_SIZE_CODE,
             RoomError::Other(_) => COMMON_CODE,
         }
     }
@@ -78,46 +100,33 @@ impl RoomError {
     }
 
     fn jrpc_error_data(&self) -> Option<serde_json::Value> {
-        match self {
-            RoomError::RoomNotFound { room_id } => Some(json!({ "room_id": room_id })),
-            RoomError::ClientNotFound { client_id, room_id } => {
-                Some(json!({ "client_id": client_id, "room_id": room_id }))
-            }
-            RoomError::InviteNotFound { invite_id, room_id } => {
-                Some(json!({ "invite_id": invite_id, "room_id": room_id }))
-            }
-            RoomError::FileNotFound { file_id, room_id } => {
-                Some(json!({ "file_id": file_id, "room_id": room_id }))
-            }
-            RoomError::DownloadProcessNotFound {
-                download_proc_id,
-                room_id,
-            } => Some(json!({ "download_proc_id": download_proc_id, "room_id": room_id })),
-            RoomError::PermissionDenied {
-                client_id,
-                room_id,
-                details,
-            } => Some(json!({
-                "client_id": client_id,
-                "room_id": room_id,
-                "details": details
-            })),
-            RoomError::RoomIsFull { room_id, capacity } => {
-                Some(json!({ "room_id": room_id, "capacity": capacity }))
-            }
-            RoomError::DownloadYourOwnFileNotAllowed {
-                client_id,
-                file_id,
-                room_id,
-            } => Some(json!({
-                "client_id": client_id,
-                "file_id": file_id,
-                "room_id": room_id
-            })),
-            RoomError::FileAlreadyExists { file_id, room_id } => {
-                Some(json!({ "file_id": file_id, "room_id": room_id }))
-            }
-            RoomError::Other(err) => Some(json!({ "details": format!("{:#}", err) })),
+        serde_json::to_value(self).ok()
+    }
+}
+
+mod serde_other_error {
+    use anyhow::anyhow;
+    use serde::{self, ser::SerializeStruct, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(to_ser: &anyhow::Error, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut s = serializer.serialize_struct("other", 1)?;
+        s.serialize_field("details", &format!("{:#}", to_ser))?;
+        s.end()
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<anyhow::Error, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(serde::Deserialize)]
+        struct Deserialized {
+            details: String,
         }
+
+        let deserialized = Deserialized::deserialize(deserializer)?;
+        Ok(anyhow!(deserialized.details))
     }
 }

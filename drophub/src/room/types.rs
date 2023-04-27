@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    ops::{Deref, DerefMut},
+};
 
 use base64::{engine::general_purpose::STANDARD as B64_ENGINE, Engine};
 use jsonrpsee::SubscriptionMessage;
@@ -56,7 +59,27 @@ pub struct FileMeta {
 
 /// Base64 encoded bytes.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct FileData(Vec<u8>);
+pub struct FileData(pub Vec<u8>);
+
+impl Deref for FileData {
+    type Target = Vec<u8>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for FileData {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl From<Vec<u8>> for FileData {
+    fn from(f: Vec<u8>) -> Self {
+        Self(f)
+    }
+}
 
 impl Serialize for FileData {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -97,7 +120,7 @@ impl TryFrom<&FileData> for SubscriptionMessage {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct UploadRequest {
-    pub download_id: DownloadProcId,
+    pub download_proc_id: DownloadProcId,
     pub file_id: FileId,
     pub block_idx: usize,
 }

@@ -5,13 +5,23 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Jwt {
     pub access_token: AccessToken,
     pub refresh_token: RefreshToken,
+    span: tracing::Span,
 }
 
 impl Jwt {
+    pub fn new(access_token: AccessToken, refresh_token: RefreshToken) -> Self {
+        let span = Self::create_span(&access_token);
+        Self {
+            access_token,
+            refresh_token,
+            span,
+        }
+    }
+
     pub fn encode(&self, secret: &str) -> Result<JwtEncoded, JwtError> {
         Ok(JwtEncoded {
             access_token: self.access_token.encode(secret)?,
@@ -20,10 +30,26 @@ impl Jwt {
     }
 
     pub fn decode(enc: &JwtEncoded, secret: &str) -> Result<Self, JwtError> {
+        let access_token = AccessToken::decode(secret, &enc.access_token)?;
+        let span = Self::create_span(&access_token);
         Ok(Self {
-            access_token: AccessToken::decode(secret, &enc.access_token)?,
+            access_token,
             refresh_token: RefreshToken::decode(&enc.refresh_token)?,
+            span,
         })
+    }
+
+    pub fn span(&self) -> &tracing::Span {
+        &self.span
+    }
+
+    fn create_span(access_token: &AccessToken) -> tracing::Span {
+        tracing::info_span!(parent: tracing::Span::current(),
+            "jwt",
+            "room.id" = ?access_token.room_id,
+            "client.id" = ?access_token.client_id,
+            "client.role" = ?access_token.role,
+        )
     }
 }
 

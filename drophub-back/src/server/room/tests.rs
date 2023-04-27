@@ -1,5 +1,5 @@
 use assert_matches::assert_matches;
-use drophub::{ClientEvent, FileMeta, RoomOptions, RoomRpcClient};
+use drophub::{ClientEvent, FileData, FileMeta, RoomOptions, RoomRpcClient, UploadRequest};
 use jsonrpsee::ws_client::WsClientBuilder;
 
 use crate::{server, test_utils};
@@ -257,4 +257,75 @@ async fn remove_file() {
 
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if !info.files.contains_key(&file_id));
     assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if !info.files.contains_key(&file_id));
+}
+
+#[tokio::test]
+async fn download_file() {
+    let cfg = test_utils::test_config();
+    let (addr, _h) = server::run(&cfg).await.unwrap();
+    let client = WsClientBuilder::default()
+        .build(format!("ws://{addr}"))
+        .await
+        .unwrap();
+
+    let mut host_sub = client.create(RoomOptions::default()).await.unwrap();
+    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
+
+    // Success connect via invite
+    let invite = client.invite(host_jwt.clone()).await.unwrap();
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
+
+    let mut guest_sub = client.connect(invite.room_id, invite.id).await.unwrap();
+    let ClientEvent::Init(guest_jwt) = guest_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0 && info.clients.len() == 2);
+    assert_matches!(guest_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0 && info.clients.len() == 2);
+
+    let file_id = client
+        .announce_file(
+            host_jwt.clone(),
+            FileMeta {
+                name: "123".to_owned(),
+                size: 10000,
+                checksum: 123,
+            },
+        )
+        .await
+        .unwrap();
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.files.contains_key(&file_id));
+    assert_matches!(guest_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.files.contains_key(&file_id));
+
+    let mut download_sub = client.sub_download(guest_jwt, file_id).await.unwrap();
+    let ClientEvent::UploadRequest(UploadRequest{ download_proc_id, file_id: upload_file_id, block_idx }) =  host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    assert_eq!(upload_file_id, file_id);
+    assert_eq!(block_idx, 0);
+
+    let full_file = vec![42u8; 10000];
+    let block1 = full_file[..cfg.room.block_size].to_vec();
+    let block2 = full_file[cfg.room.block_size..].to_vec();
+
+    assert_matches!(
+        client
+            .upload_file(host_jwt.clone(), FileData(block1.clone()), download_proc_id)
+            .await,
+        Ok(_)
+    );
+    assert_matches!(download_sub.next().await, Some(Ok(file_data)) if *file_data == block1);
+
+    assert_matches!(
+        client
+            .upload_file(host_jwt.clone(), FileData(block2.clone()), download_proc_id)
+            .await,
+        Ok(_)
+    );
+    assert_matches!(download_sub.next().await, Some(Ok(file_data)) if *file_data == block2);
+
+    // Download process completed
+    assert_matches!(
+        client
+            .upload_file(host_jwt.clone(), FileData(block2.clone()), download_proc_id)
+            .await,
+        Err(_)
+    );
 }

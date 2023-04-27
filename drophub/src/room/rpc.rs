@@ -9,26 +9,23 @@ use crate::{
 pub trait RoomRpc {
     /// Creates new invite.
     #[method(name = "invite")]
-    async fn invite(&self, jwt: JwtEncoded) -> Result<Invite, RoomError>;
+    fn invite(&self, jwt: JwtEncoded) -> Result<Invite, RoomError>;
 
     /// Revokes invite.
     #[method(name = "revoke_invite")]
-    async fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InviteId) -> Result<(), RoomError>;
+    fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InviteId) -> Result<(), RoomError>;
 
     /// Kicks client.
     #[method(name = "kick")]
-    async fn kick(&self, jwt: JwtEncoded, client_id: ClientId) -> Result<(), RoomError>;
+    fn kick(&self, jwt: JwtEncoded, client_id: ClientId) -> Result<(), RoomError>;
 
     /// Announces new file.
     #[method(name = "announce_file")]
-    async fn announce_file(
-        &self,
-        jwt: JwtEncoded,
-        file_meta: FileMeta,
-    ) -> Result<FileId, RoomError>;
+    fn announce_file(&self, jwt: JwtEncoded, file_meta: FileMeta) -> Result<FileId, RoomError>;
 
+    /// Removes file.
     #[method(name = "remove_file")]
-    async fn remove_file(&self, jwt: JwtEncoded, file_id: FileId) -> Result<(), RoomError>;
+    fn remove_file(&self, jwt: JwtEncoded, file_id: FileId) -> Result<(), RoomError>;
 
     /// Uploads received file.
     #[method(name = "upload_file")]
