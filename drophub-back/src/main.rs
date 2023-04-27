@@ -4,6 +4,7 @@ mod jwt;
 mod server;
 #[cfg(test)]
 mod test_utils;
+mod utils;
 
 use clap::Parser;
 use tracing_subscriber::EnvFilter;

@@ -2,7 +2,6 @@
 
 use std::{ops::Add, pin::pin};
 
-use anyhow::anyhow;
 use dashmap::{
     mapref::one::{Ref, RefMut},
     DashMap,
@@ -15,7 +14,6 @@ use jsonrpsee::{
     core::{async_trait, SubscriptionResult},
     PendingSubscriptionSink,
 };
-use replace_with::replace_with_or_default;
 use scopeguard::defer;
 use time::OffsetDateTime;
 use tokio::sync::{broadcast::error::RecvError, mpsc};
@@ -26,7 +24,7 @@ use crate::{
     config::{Config, RoomConfig},
     jwt::{AccessToken, ClientRole, Jwt, RefreshToken},
     server::room::{
-        types::{Client, DownloadProc, File, Room},
+        types::{Client, File, Room},
         validator::{RoomMutValidate, RoomValidate, RoomValidator},
     },
 };
@@ -66,15 +64,8 @@ impl RoomRpcServer for RoomRpc {
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         RoomValidator::new(&jwt, &mut *room).validate_invite()?;
 
-        let invite = room.generate_invite(self.cfg.invite_duration)?;
-        room.invites
-            .insert(invite.id.clone(), invite.clone(), self.cfg.invite_duration);
-
-        // Broadcast updated room info
-        let room_info = room.info();
-        room.info_tx
-            .send(room_info)
-            .map_err(|_| anyhow!("Room info channel closed"))?;
+        let invite = room.generate_invite()?;
+        room.broadcast_info()?;
 
         Ok(invite)
     }
@@ -85,19 +76,8 @@ impl RoomRpcServer for RoomRpc {
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         RoomValidator::new(&jwt, &*room).validate_revoke_invite()?;
 
-        let _ = room
-            .invites
-            .remove(&invite_id)
-            .ok_or(RoomError::InviteNotFound {
-                invite_id,
-                room_id: jwt.access_token.room_id,
-            })?;
-
-        // Broadcast updated room info
-        let room_info = room.info();
-        room.info_tx
-            .send(room_info)
-            .map_err(|_| anyhow!("Room info channel closed"))?;
+        room.revoke_invite(invite_id)?;
+        room.broadcast_info()?;
 
         Ok(())
     }
@@ -108,29 +88,8 @@ impl RoomRpcServer for RoomRpc {
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         RoomValidator::new(&jwt, &*room).validate_kick(client_id)?;
 
-        // Remove client from list
-        let _ = room
-            .clients
-            .remove(&client_id)
-            .ok_or(RoomError::ClientNotFound {
-                client_id,
-                room_id: jwt.access_token.room_id,
-            })?;
-
-        // Remove all client-owned files
-        // TODO: don't delete the file if any other client has it
-        replace_with_or_default(&mut room.files, |room_files| {
-            room_files
-                .into_iter()
-                .filter(|(_, file)| file.owner != client_id)
-                .collect()
-        });
-
-        // Broadcast updated room info
-        let room_info = room.info();
-        room.info_tx
-            .send(room_info)
-            .map_err(|_| anyhow!("Room info channel closed"))?;
+        room.remove_client(client_id)?;
+        room.broadcast_info()?;
 
         Ok(())
     }
@@ -144,16 +103,11 @@ impl RoomRpcServer for RoomRpc {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         let file = File::new(file_meta, jwt.access_token.client_id);
-        RoomValidator::new(&jwt, &*room).validate_announce_file(file.id)?;
-
         let file_id = file.id;
-        room.files.insert(file.id, file);
+        RoomValidator::new(&jwt, &*room).validate_announce_file(file_id)?;
 
-        // Broadcast updated room info
-        let room_info = room.info();
-        room.info_tx
-            .send(room_info)
-            .map_err(|_| anyhow!("Room info channel closed"))?;
+        room.add_file(file)?;
+        room.broadcast_info()?;
 
         Ok(file_id)
     }
@@ -164,13 +118,8 @@ impl RoomRpcServer for RoomRpc {
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         RoomValidator::new(&jwt, &*room).validate_remove_file(file_id)?;
 
-        room.files.remove(&file_id);
-
-        // Broadcast updated room info
-        let room_info = room.info();
-        room.info_tx
-            .send(room_info)
-            .map_err(|_| anyhow!("Room info channel closed"))?;
+        room.remove_file(file_id)?;
+        room.broadcast_info()?;
 
         Ok(())
     }
@@ -186,24 +135,7 @@ impl RoomRpcServer for RoomRpc {
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
         RoomValidator::new(&jwt, &*room).validate_upload_file()?;
 
-        let mut download_proc =
-            room.downloads
-                .get_mut(&download_id)
-                .ok_or(RoomError::DownloadProcessNotFound {
-                    download_id,
-                    room_id: jwt.access_token.room_id,
-                })?;
-
-        download_proc
-            .data_tx
-            .send(file_data)
-            .await
-            .map_err(|_| anyhow!("Data channel closed"))?;
-
-        download_proc.next_block_idx += 1;
-        if download_proc.next_block_idx >= download_proc.blocks_count {
-            room.downloads.remove(&download_id);
-        }
+        room.send_file(file_data, download_id).await?;
 
         Ok(())
     }
@@ -220,17 +152,17 @@ impl RoomRpcServer for RoomRpc {
         let client = Client::new(ClientRole::Host, upload_tx);
         let client_role = client.role;
         let client_id = client.id;
-        let mut room = Room::new(options, self.cfg.block_size, client);
+        let mut room = Room::new(options, client, &self.cfg);
 
         let host_jwt = Jwt {
             access_token: AccessToken {
                 client_id,
-                room_id: room.id,
+                room_id: room.id(),
                 role: client_role,
                 exp: self
                     .cfg
                     .jwt
-                    .access_token_duration
+                    .access_token_ttl
                     .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
@@ -239,28 +171,28 @@ impl RoomRpcServer for RoomRpc {
                 exp: self
                     .cfg
                     .jwt
-                    .refresh_token_duration
+                    .refresh_token_ttl
                     .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
         }
         .encode(&self.cfg.jwt.token_secret)?;
 
+        let mut room_rx = {
+            let room_rx = room.subscribe();
+            room.broadcast_info()?;
+            room_rx
+        };
+
+        let room_id = room.id();
+        self.rooms.insert(room_id, room);
+        // Remove room on disconnect
+        defer! { self.rooms.remove(&room_id); }
+
         let sink = subscription_sink.accept().await?;
         let mut sink_closed = pin!(sink.closed());
-        let mut room_rx = room.info_tx.subscribe();
 
         sink.send(ClientEvent::Init(host_jwt).try_into()?).await?;
-
-        // Broadcast updated room info
-        let room_info = room.info();
-        room.info_tx
-            .send(room_info)
-            .map_err(|_| anyhow!("Room info channel closed"))?;
-
-        let room_id = room.id;
-        self.rooms.insert(room_id, room);
-        defer! { self.rooms.remove(&room_id); }
 
         loop {
             tokio::select! {
@@ -315,7 +247,7 @@ impl RoomRpcServer for RoomRpc {
                 exp: self
                     .cfg
                     .jwt
-                    .access_token_duration
+                    .access_token_ttl
                     .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
@@ -324,7 +256,7 @@ impl RoomRpcServer for RoomRpc {
                 exp: self
                     .cfg
                     .jwt
-                    .refresh_token_duration
+                    .refresh_token_ttl
                     .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
@@ -332,26 +264,9 @@ impl RoomRpcServer for RoomRpc {
         .encode(&self.cfg.jwt.token_secret)?;
 
         let mut room_rx = {
-            let mut room = self
-                .rooms
-                .get_mut(&room_id)
-                .ok_or(RoomError::RoomNotFound { room_id })?;
-
-            let _ = room
-                .invites
-                .remove(&invite_id)
-                .ok_or(RoomError::InviteNotFound { invite_id, room_id })?;
-
-            // Add connected client
-            room.clients.insert(client.id, client);
-
-            let room_rx = room.info_tx.subscribe();
-
-            // Broadcast updated room info
-            let room_info = room.info();
-            room.info_tx
-                .send(room_info)
-                .map_err(|_| anyhow!("Room info channel closed"))?;
+            let mut room = self.get_room_mut(room_id)?;
+            let room_rx = room.add_client(client, invite_id)?;
+            room.broadcast_info()?;
 
             room_rx
         };
@@ -359,17 +274,7 @@ impl RoomRpcServer for RoomRpc {
         // Remove client from room on disconnect
         defer! {
             let Some(mut room) = self.rooms.get_mut(&room_id) else { return };
-            // Remove client from list
-            room.clients.remove(&client_id);
-
-            // Remove all client-owned files
-            // TODO: don't delete the file if any other client has it
-            replace_with_or_default(&mut room.files, |room_files| {
-                room_files
-                    .into_iter()
-                    .filter(|(_, file)| file.owner != client_id)
-                    .collect()
-            });
+            let _ = room.remove_client(client_id);
         }
 
         let sink = subscription_sink.accept().await?;
@@ -422,25 +327,12 @@ impl RoomRpcServer for RoomRpc {
         let (download_proc_id, mut data_rx) = {
             let mut room = self.get_room_mut(jwt.access_token.room_id)?;
             RoomValidator::new(&jwt, &*room).validate_sub_download(file_id)?;
-
-            let file = room.files.get(&file_id).ok_or(RoomError::FileNotFound {
-                file_id,
-                room_id: jwt.access_token.room_id,
-            })?;
-
-            let (data_tx, data_rx) = mpsc::channel(1);
-            let download_proc =
-                DownloadProc::new(file_id, file.meta.size, self.cfg.block_size, data_tx);
-
-            let download_proc_id = download_proc.id;
-            room.downloads.insert(download_proc.id, download_proc);
-
-            (download_proc_id, data_rx)
+            room.start_download_proc(file_id)?
         };
 
         defer! {
             let Some(mut room) = self.rooms.get_mut(&jwt.access_token.room_id) else { return };
-            room.downloads.remove(&download_proc_id);
+            room.stop_download_proc(download_proc_id)
         }
 
         let sink = subscription_sink.accept().await?;

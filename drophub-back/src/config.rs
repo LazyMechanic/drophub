@@ -19,7 +19,7 @@ pub struct ServerConfig {
 pub struct RoomConfig {
     pub jwt: JwtConfig,
     #[serde(with = "humantime_serde")]
-    pub invite_duration: Duration,
+    pub invite_ttl: Duration,
     /// File block size in bytes.
     #[serde(default = "RoomConfig::def_block_size")]
     pub block_size: usize,
@@ -35,9 +35,9 @@ impl RoomConfig {
 pub struct JwtConfig {
     pub token_secret: String,
     #[serde(default, with = "humantime_serde")]
-    pub access_token_duration: Option<Duration>,
+    pub access_token_ttl: Option<Duration>,
     #[serde(default, with = "humantime_serde")]
-    pub refresh_token_duration: Option<Duration>,
+    pub refresh_token_ttl: Option<Duration>,
 }
 
 impl Config {
