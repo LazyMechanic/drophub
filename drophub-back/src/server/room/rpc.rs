@@ -143,9 +143,9 @@ impl RoomRpcServer for RoomRpc {
     ) -> Result<FileId, RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
         let mut room = self.get_room_mut(jwt.access_token.room_id)?;
-        RoomValidator::new(&jwt, &*room).validate_announce_file()?;
-
         let file = File::new(file_meta, jwt.access_token.client_id);
+        RoomValidator::new(&jwt, &*room).validate_announce_file(file.id)?;
+
         let file_id = file.id;
         room.files.insert(file.id, file);
 

@@ -18,7 +18,7 @@ pub struct RoomValidator<'a, R> {
 pub trait RoomValidate {
     fn validate_revoke_invite(&self) -> Result<(), RoomError>;
     fn validate_kick(&self, client_id: ClientId) -> Result<(), RoomError>;
-    fn validate_announce_file(&self) -> Result<(), RoomError>;
+    fn validate_announce_file(&self, file_id: FileId) -> Result<(), RoomError>;
     fn validate_remove_file(&self, file_id: FileId) -> Result<(), RoomError>;
     fn validate_upload_file(&self) -> Result<(), RoomError>;
     fn validate_sub_download(&self, file_id: FileId) -> Result<(), RoomError>;
@@ -50,7 +50,7 @@ where
         Ok(())
     }
 
-    fn check_remove_file(&self, file_id: FileId) -> Result<(), RoomError> {
+    fn check_file_owner(&self, file_id: FileId) -> Result<(), RoomError> {
         let file = self
             .room
             .borrow()
@@ -106,6 +106,17 @@ where
 
         Ok(())
     }
+
+    fn check_file_exists(&self, file_id: FileId) -> Result<(), RoomError> {
+        if self.room.borrow().files.contains_key(&file_id) {
+            return Err(RoomError::FileAlreadyExists {
+                file_id,
+                room_id: self.room.borrow().id,
+            });
+        }
+
+        Ok(())
+    }
 }
 
 impl<'a, R> RoomValidator<'a, R>
@@ -142,12 +153,13 @@ where
         Ok(())
     }
 
-    fn validate_announce_file(&self) -> Result<(), RoomError> {
+    fn validate_announce_file(&self, file_id: FileId) -> Result<(), RoomError> {
+        self.check_file_exists(file_id)?;
         Ok(())
     }
 
     fn validate_remove_file(&self, file_id: FileId) -> Result<(), RoomError> {
-        self.check_remove_file(file_id)?;
+        self.check_file_owner(file_id)?;
         Ok(())
     }
 

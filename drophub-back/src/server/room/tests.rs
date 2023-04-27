@@ -1,5 +1,5 @@
 use assert_matches::assert_matches;
-use drophub::{ClientEvent, RoomOptions, RoomRpcClient};
+use drophub::{ClientEvent, FileMeta, RoomOptions, RoomRpcClient};
 use jsonrpsee::ws_client::WsClientBuilder;
 
 use crate::{server, test_utils};
@@ -178,4 +178,32 @@ async fn kick() {
     );
 
     assert_matches!(client.kick(host_jwt, room_info.host_id).await, Err(_));
+}
+
+#[tokio::test]
+async fn announce_file() {
+    let cfg = test_utils::test_config();
+    let (addr, _h) = server::run(&cfg).await.unwrap();
+    let client = WsClientBuilder::default()
+        .build(format!("ws://{addr}"))
+        .await
+        .unwrap();
+
+    let mut host_sub = client.create(RoomOptions::default()).await.unwrap();
+    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
+
+    let file_id = client
+        .announce_file(
+            host_jwt,
+            FileMeta {
+                name: "123".to_owned(),
+                size: 123,
+                checksum: 123,
+            },
+        )
+        .await
+        .unwrap();
+
+    assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.files.contains_key(&file_id));
 }

@@ -8,9 +8,10 @@ use uuid::Uuid;
 
 use crate::JwtEncoded;
 
+pub type Crc32Hash = u32;
 pub type RoomId = u64;
 pub type InviteId = String;
-pub type FileId = Uuid;
+pub type FileId = Crc32Hash;
 pub type ClientId = Uuid;
 pub type DownloadProcId = Uuid;
 
@@ -50,7 +51,7 @@ pub struct FileMeta {
     pub name: String,
     pub size: usize,
     /// CRC32 hash.
-    pub checksum: u32,
+    pub checksum: Crc32Hash,
 }
 
 /// Base64 encoded bytes.

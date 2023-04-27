@@ -155,14 +155,10 @@ pub struct File {
 impl File {
     pub fn new(meta: FileMeta, owner: ClientId) -> Self {
         Self {
-            id: Self::next_id(),
+            id: meta.checksum,
             meta,
             owner,
         }
-    }
-
-    fn next_id() -> FileId {
-        Uuid::new_v4()
     }
 }
 

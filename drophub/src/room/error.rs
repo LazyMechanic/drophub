@@ -47,6 +47,8 @@ pub enum RoomError {
         download_id: DownloadProcId,
         room_id: RoomId,
     },
+    #[error("File already exists")]
+    FileAlreadyExists { file_id: FileId, room_id: RoomId },
     #[error("Other error")]
     Other(#[from] anyhow::Error),
 }
@@ -72,6 +74,7 @@ impl RoomError {
             RoomError::RoomIsFull { .. } => COMMON_CODE,
             RoomError::DownloadYourOwnFileNotAllowed { .. } => COMMON_CODE,
             RoomError::DownloadProcessAlreadyDone { .. } => COMMON_CODE,
+            RoomError::FileAlreadyExists { .. } => COMMON_CODE,
             RoomError::Other(_) => COMMON_CODE,
         }
     }
@@ -121,6 +124,9 @@ impl RoomError {
                 download_id,
                 room_id,
             } => Some(json!({ "download_id": download_id, "room_id": room_id })),
+            RoomError::FileAlreadyExists { file_id, room_id } => {
+                Some(json!({ "file_id": file_id, "room_id": room_id }))
+            }
             RoomError::Other(err) => Some(json!({ "details": format!("{:#}", err) })),
         }
     }
