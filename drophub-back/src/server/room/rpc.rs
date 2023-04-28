@@ -1,4 +1,4 @@
-// TODO: access to clients, files, downloads, etc. via failable funcs
+// TODO: add encryption
 
 use std::{ops::Add, pin::pin};
 
