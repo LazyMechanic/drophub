@@ -10,4 +10,10 @@ keywords = ["yew", "trunk", "data", "transfer"]
 categories = ["gui", "wasm", "web-programming"]
 
 [dependencies]
+drophub = { path = "../drophub", version = "0.1.0" }
+
+jsonrpsee = { version = "0.18.1", features = ["client"] }
+tracing = { version = "0.1.38", default-features = false }
+tracing-subscriber = { version = "0.3.17", features = ["time"] }
+tracing-web = "0.1.2"
 yew = { version="0.20", features=["csr"] }
