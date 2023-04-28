@@ -128,7 +128,7 @@ impl Room {
                     exp: OffsetDateTime::now_utc().add(self.invite_ttl),
                 };
                 self.invites
-                    .insert(invite_id.clone(), invite.clone(), self.invite_ttl);
+                    .insert(invite_id, invite.clone(), self.invite_ttl);
                 break Ok(invite);
             }
         }
@@ -155,13 +155,10 @@ impl Room {
     }
 
     pub fn remove_file(&mut self, file_id: FileId) -> Result<(), RoomError> {
-        let file = self
-            .files
-            .remove(&file_id)
-            .ok_or_else(|| RoomError::FileNotFound {
-                file_id,
-                room_id: self.id,
-            })?;
+        let file = self.files.remove(&file_id).ok_or(RoomError::FileNotFound {
+            file_id,
+            room_id: self.id,
+        })?;
 
         let client = self.get_client_mut(file.owner)?;
         client.files.remove(&file_id);
@@ -328,7 +325,7 @@ impl Room {
     fn get_client(&self, client_id: ClientId) -> Result<&Client, RoomError> {
         self.clients
             .get(&client_id)
-            .ok_or_else(|| RoomError::ClientNotFound {
+            .ok_or(RoomError::ClientNotFound {
                 client_id,
                 room_id: self.id,
             })
@@ -337,7 +334,7 @@ impl Room {
     fn get_client_mut(&mut self, client_id: ClientId) -> Result<&mut Client, RoomError> {
         self.clients
             .get_mut(&client_id)
-            .ok_or_else(|| RoomError::ClientNotFound {
+            .ok_or(RoomError::ClientNotFound {
                 client_id,
                 room_id: self.id,
             })

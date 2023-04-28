@@ -167,7 +167,6 @@ impl RoomRpcServer for RoomRpc {
                     .cfg
                     .jwt
                     .access_token_ttl
-                    .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
             RefreshToken {
@@ -176,7 +175,6 @@ impl RoomRpcServer for RoomRpc {
                     .cfg
                     .jwt
                     .refresh_token_ttl
-                    .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
         );
@@ -264,7 +262,6 @@ impl RoomRpcServer for RoomRpc {
                     .cfg
                     .jwt
                     .access_token_ttl
-                    .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
             RefreshToken {
@@ -273,7 +270,6 @@ impl RoomRpcServer for RoomRpc {
                     .cfg
                     .jwt
                     .refresh_token_ttl
-                    .clone()
                     .map(|dur| OffsetDateTime::now_utc().add(dur)),
             },
         );
