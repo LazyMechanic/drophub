@@ -53,7 +53,7 @@ impl Config {
         }
         cfg = cfg.add_source(
             config_lib::Environment::default()
-                .prefix("DROPHUB")
+                .prefix("DROPHUB_BACK")
                 .separator("__")
                 .ignore_empty(true),
         );

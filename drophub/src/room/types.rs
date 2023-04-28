@@ -4,6 +4,7 @@ use std::{
 };
 
 use base64::{engine::general_purpose::STANDARD as B64_ENGINE, Engine};
+#[cfg(feature = "rpc-server")]
 use jsonrpsee::SubscriptionMessage;
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use time::OffsetDateTime;
@@ -102,6 +103,7 @@ impl<'de> Deserialize<'de> for FileData {
     }
 }
 
+#[cfg(feature = "rpc-server")]
 impl TryFrom<FileData> for SubscriptionMessage {
     type Error = serde_json::Error;
 
@@ -110,6 +112,7 @@ impl TryFrom<FileData> for SubscriptionMessage {
     }
 }
 
+#[cfg(feature = "rpc-server")]
 impl TryFrom<&FileData> for SubscriptionMessage {
     type Error = serde_json::Error;
 
@@ -133,6 +136,7 @@ pub enum ClientEvent {
     UploadRequest(UploadRequest),
 }
 
+#[cfg(feature = "rpc-server")]
 impl TryFrom<ClientEvent> for SubscriptionMessage {
     type Error = serde_json::Error;
 
@@ -141,6 +145,7 @@ impl TryFrom<ClientEvent> for SubscriptionMessage {
     }
 }
 
+#[cfg(feature = "rpc-server")]
 impl TryFrom<&ClientEvent> for SubscriptionMessage {
     type Error = serde_json::Error;
 

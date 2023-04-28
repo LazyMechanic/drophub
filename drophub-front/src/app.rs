@@ -1,7 +1,9 @@
 use yew::prelude::*;
 
+use crate::config::Config;
+
 #[function_component(App)]
-pub fn app() -> Html {
+pub fn app(cfg: &Config) -> Html {
     html! {
         <main>
             <img class="logo" src="https://yew.rs/img/logo.png" alt="Yew logo" />

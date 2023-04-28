@@ -1,27 +1,33 @@
 mod app;
+mod config;
+mod rpc;
 
 use app::App;
-use tracing_subscriber::{
-    fmt::{format::Pretty, time::UtcTime},
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
-};
-use tracing_web::{performance_layer, MakeConsoleWriter};
+use drophub::RoomRpcClient;
+use yew::platform::{pinned::mpsc, spawn_local};
 
-fn main() {
+use crate::{
+    config::Config,
+    rpc_msg::{rpc_channel, RpcRequest, RpcRequestReceiver},
+};
+
+fn main() -> anyhow::Result<()> {
     init_logging();
-    yew::Renderer::<App>::new().render();
+    run_client()
 }
 
 fn init_logging() {
-    let fmt_layer = tracing_subscriber::fmt::layer()
-        .with_ansi(false) // Only partially supported across browsers
-        .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
-        .with_writer(MakeConsoleWriter); // write events to the console
-    let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
+    console_error_panic_hook::set_once();
+    tracing_wasm::set_as_global_default();
+}
 
-    tracing_subscriber::registry()
-        .with(fmt_layer)
-        .with(perf_layer)
-        .init(); // Install these as subscribers to tracing events
+fn run_client() -> anyhow::Result<()> {
+    let cfg = Config::from_env()?;
+    let (rpc_tx, rpc_rx) = rpc::channel();
+
+    // TODO: pass rpc_tx to app
+    spawn_local(rpc::run(cfg.clone(), rpc_rx));
+    yew::Renderer::<App>::with_props(cfg).render();
+
+    Ok(())
 }

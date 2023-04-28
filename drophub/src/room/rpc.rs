@@ -1,11 +1,35 @@
-use jsonrpsee::{core::SubscriptionResult, proc_macros::rpc};
+#[cfg(feature = "rpc-server")]
+use jsonrpsee::core::SubscriptionResult;
+use jsonrpsee::proc_macros::rpc;
 
+#[cfg(feature = "rpc-server")]
+use crate::RoomError;
 use crate::{
     ClientEvent, ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InviteId,
-    JwtEncoded, RoomError, RoomId, RoomOptions,
+    JwtEncoded, RoomId, RoomOptions,
 };
 
-#[rpc(client, server, namespace = "room")]
+#[cfg_attr(
+    all(
+        any(feature = "rpc-client-ws", feature = "rpc-client-wasm"),
+        not(feature = "rpc-server")
+    ),
+    rpc(client, namespace = "room")
+)]
+#[cfg_attr(
+    all(
+        feature = "rpc-server",
+        not(any(feature = "rpc-client-ws", feature = "rpc-client-wasm"))
+    ),
+    rpc(server, namespace = "room")
+)]
+#[cfg_attr(
+    all(
+        any(feature = "rpc-client-ws", feature = "rpc-client-wasm"),
+        feature = "rpc-server"
+    ),
+    rpc(client, server, namespace = "room")
+)]
 pub trait RoomRpc {
     /// Creates new invite.
     #[method(name = "invite")]
