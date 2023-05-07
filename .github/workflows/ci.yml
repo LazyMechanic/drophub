@@ -16,25 +16,42 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Install cargo-nextest
+      uses: taiki-e/install-action@nextest
+
     - uses: actions/setup-node@v3
-    - name: install toolchain
+    - name: Install trunk
+      uses: jetli/trunk-action@v0.1.0
+      with:
+        version: 'latest'
+    - name: Install rust toolchain (wasm)
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         target: wasm32-unknown-unknown
         override: true
         profile: minimal
-    - name: Install trunk
-      uses: jetli/trunk-action@v0.1.0
+    - name: Build (drophub-front)
+      run: |
+        npm install --prefix ./drophub-front
+        trunk build -d ./dist ./drophub-front/index.html
+          
+
+    - name: Install rust toolchain
+      uses: actions-rs/toolchain@v1
       with:
-        version: 'latest'
-    - name: Build
-      run: cargo build --verbose
-    - name: Build front
-      run:
-        - npm install --prefix ./drophub-front
-        - trunk build -d ./dist ./drophub-front/index.html
-    - name: Test
-      run: cargo test --verbose
-    - name: Clippy
-      run: cargo clippy --verbose
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
+    - name: Build (drophub)
+      run: cargo build -p drophub --all-features --verbose
+    - name: Build (drophub-back)
+      run: cargo build -p drophub-back --verbose
+    - name: Test (drophub)
+      run: cargo nextest run -p drophub --all-features --verbose
+    - name: Test (drophub-back)
+      run: cargo nextest run -p drophub-back --verbose
+    - name: Clippy (drophub)
+      run: cargo clippy -p drophub --all-features --verbose
+    - name: Clippy (drophub-back)
+      run: cargo clippy -p drophub-back --verbose
