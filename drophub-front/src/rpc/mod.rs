@@ -1,9 +1,9 @@
 pub mod channel;
 
-pub use channel::{channel, RpcRequest, RpcRequestReceiver, RpcRequestSender, RpcResponse};
 use drophub::RoomOptions;
 use yew::platform::spawn_local;
 
+pub use self::channel::{channel, RpcRequest, RpcRequestReceiver, RpcRequestSender, RpcResponse};
 use crate::{config::Config, rpc::channel::RoomRpcModule};
 
 pub async fn run(cfg: Config, mut rpc_rx: RpcRequestReceiver) {
@@ -12,7 +12,7 @@ pub async fn run(cfg: Config, mut rpc_rx: RpcRequestReceiver) {
         .await
         .unwrap();
 
-    while let Some((req, resp_tx)) = rpc_rx.recv() {
+    while let Some((req, resp_tx)) = rpc_rx.recv().await {
         match req {
             RpcRequest::Room(RoomRpcModule::Create(opt)) => spawn_local(create(opt)),
         }

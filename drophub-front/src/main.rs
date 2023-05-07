@@ -1,15 +1,14 @@
 mod app;
+mod components;
 mod config;
+mod routes;
 mod rpc;
 
 use app::App;
 use drophub::RoomRpcClient;
-use yew::platform::{pinned::mpsc, spawn_local};
+use yew::platform::spawn_local;
 
-use crate::{
-    config::Config,
-    rpc_msg::{rpc_channel, RpcRequest, RpcRequestReceiver},
-};
+use crate::config::Config;
 
 fn main() -> anyhow::Result<()> {
     init_logging();
@@ -27,7 +26,7 @@ fn run_client() -> anyhow::Result<()> {
 
     // TODO: pass rpc_tx to app
     spawn_local(rpc::run(cfg.clone(), rpc_rx));
-    yew::Renderer::<App>::with_props(cfg).render();
+    yew::Renderer::<App>::new().render();
 
     Ok(())
 }

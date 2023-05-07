@@ -23,3 +23,4 @@ tracing = { version = "0.1.38", default-features = false }
 tracing-wasm = "0.2.1"
 url = { version = "2.3.1", features = ["serde"] }
 yew = { version = "0.20", features = ["csr"] }
+yew-router = "0.17.0"

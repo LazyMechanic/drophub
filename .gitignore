@@ -1,4 +1,7 @@
 /target
 /.idea
+
 /dist
+/node_modules
 /drophub-front/dist
+/drophub-front/node_modules

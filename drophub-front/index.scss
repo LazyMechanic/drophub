@@ -1,35 +1,20 @@
-html,
-body {
-  height: 100%;
-  margin: 0;
+/* TODO: create custom color theme */
+
+@import "./node_modules/bootstrap/scss/bootstrap";
+
+html { height: 100%; }
+body { height: 100%; }
+
+#dh-btn-connect-room,
+#dh-btn-create-room {
+    height: 2.7em;
+    width: 100%;
 }
 
-body {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-
-  background: linear-gradient(to bottom right, #444444, #009a5b);
-  font-size: 1.5rem;
+@include media-breakpoint-up(lg) {
+    #dh-btn-connect-room,
+    #dh-btn-create-room {
+        width: 10em;
+    }
 }
 
-main {
-  color: #fff6d5;
-  font-family: sans-serif;
-  text-align: center;
-}
-
-.logo {
-  height: 20em;
-}
-
-.heart:after {
-  content: "❤️";
-
-  font-size: 1.75em;
-}
-
-h1 + .subtitle {
-  display: block;
-  margin-top: -1em;
-}
