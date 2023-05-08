@@ -1,5 +1,8 @@
 use tracing::instrument;
 use yew::prelude::*;
+use yew_router::prelude::*;
+
+use crate::routes::Route;
 
 #[function_component(Footer)]
 #[instrument]
@@ -15,7 +18,7 @@ pub fn footer() -> Html {
                    bg-light"
         >
             <ul class="nav nav-underline">
-                <li class="nav-item"><a class="nav-link text-secondary" href="/">{ "Home" }</a></li>
+                <li class="nav-item"><Link<Route> classes="nav-link text-secondary" to={Route::Home}>{ "Home" }</Link<Route>></li>
                 <li class="nav-item"><a class="nav-link text-secondary" href="#">{ "About" }</a></li>
                 <li class="nav-item"><a class="nav-link text-secondary" href="https://github.com/LazyMechanic/drophub">{ "Github" }</a></li>
                 <li class="nav-item"><a class="nav-link text-secondary" href="#">{ "Contact" }</a></li>

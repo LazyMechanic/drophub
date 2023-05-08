@@ -1,24 +1,46 @@
-pub mod channel;
+mod channel;
 
-use drophub::RoomOptions;
+use drophub::{ClientEvent, RoomRpcClient};
+use jsonrpsee::core::client::Subscription;
+use wasm_bindgen::UnwrapThrowExt;
 use yew::platform::spawn_local;
 
-pub use self::channel::{channel, RpcRequest, RpcRequestReceiver, RpcRequestSender, RpcResponse};
-use crate::{config::Config, rpc::channel::RoomRpcModule};
+pub use self::channel::{
+    channel, RpcRequestTx, RpcSingleRequest, RpcSingleResponse, RpcSubscribeRequest,
+    RpcSubscribeResponse, RpcSubscribeResponseRx,
+};
+use crate::{
+    config::Config,
+    error::Error,
+    rpc::channel::{RpcRequestMsg, RpcRequestRx, RpcSubscribeResponseTx},
+};
 
-pub async fn run(cfg: Config, mut rpc_rx: RpcRequestReceiver) {
+pub async fn run(cfg: Config, mut rpc_rx: RpcRequestRx) {
     let rpc_client = jsonrpsee::wasm_client::WasmClientBuilder::default()
         .build(cfg.api_root_url)
         .await
         .unwrap();
 
-    while let Some((req, resp_tx)) = rpc_rx.recv().await {
-        match req {
-            RpcRequest::Room(RoomRpcModule::Create(opt)) => spawn_local(create(opt)),
-        }
+    while let Some(req_msg) = rpc_rx.recv().await {
+        if let Err(err) = handle_req_msg(&rpc_client, req_msg).await {}
     }
 }
 
-async fn create(opt: RoomOptions) {
-    todo!()
+async fn handle_req_msg(
+    rpc_client: &jsonrpsee::core::client::Client,
+    req_msg: RpcRequestMsg,
+) -> Result<(), Error> {
+    match req_msg {
+        RpcRequestMsg::Single(req, resp_tx) => match req {},
+        RpcRequestMsg::Subscribe(req, resp_tx) => match req {
+            RpcSubscribeRequest::CreateRoom(opt) => {
+                let sub = rpc_client.create(opt).await?;
+                spawn_local(create_room(sub, resp_tx));
+            }
+        },
+    }
+
+    Ok(())
 }
+
+async fn create_room(sub: Subscription<ClientEvent>, resp_tx: RpcSubscribeResponseTx) {}

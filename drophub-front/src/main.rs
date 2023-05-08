@@ -1,18 +1,16 @@
 mod app;
 mod components;
 mod config;
+mod ctx;
+mod error;
 mod routes;
 mod rpc;
 
 use app::App;
-use drophub::RoomRpcClient;
-use yew::platform::spawn_local;
 
-use crate::config::Config;
-
-fn main() -> anyhow::Result<()> {
+fn main() {
     init_logging();
-    run_client()
+    run_client();
 }
 
 fn init_logging() {
@@ -20,13 +18,6 @@ fn init_logging() {
     tracing_wasm::set_as_global_default();
 }
 
-fn run_client() -> anyhow::Result<()> {
-    let cfg = Config::from_env()?;
-    let (rpc_tx, rpc_rx) = rpc::channel();
-
-    // TODO: pass rpc_tx to app
-    spawn_local(rpc::run(cfg.clone(), rpc_rx));
+fn run_client() {
     yew::Renderer::<App>::new().render();
-
-    Ok(())
 }

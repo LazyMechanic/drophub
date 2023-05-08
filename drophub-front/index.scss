@@ -5,15 +5,15 @@
 html { height: 100%; }
 body { height: 100%; }
 
-#dh-btn-connect-room,
-#dh-btn-create-room {
+#dhBtnConnectRoom,
+#dhBtnCreateRoom {
     height: 2.7em;
     width: 100%;
 }
 
 @include media-breakpoint-up(lg) {
-    #dh-btn-connect-room,
-    #dh-btn-create-room {
+    #dhBtnConnectRoom,
+    #dhBtnCreateRoom {
         width: 10em;
     }
 }
