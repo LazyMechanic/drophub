@@ -35,7 +35,7 @@ pub fn app() -> Html {
                         w-100"
             >
                 <header><Header /></header>
-                <main class="flex-grow-1 mt-3 mb-3">
+                <main class="flex-grow-1">
                     <AlertContainer />
                     <Switch<Route> render={switch} />
                 </main>

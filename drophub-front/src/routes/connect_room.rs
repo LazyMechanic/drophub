@@ -61,7 +61,10 @@ pub fn connect_room() -> Html {
 
             if elem.check_validity() {
                 // TODO: send api request
-                navigator.push(&Route::Room);
+                navigator.push(&Route::ConnectRoomLoad {
+                    room_id: state_handle.room_id.unwrap_throw(),
+                    invite_password: state_handle.invite_password.clone().unwrap_throw(),
+                });
             }
         }
     });
