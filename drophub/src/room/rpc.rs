@@ -5,7 +5,7 @@ use jsonrpsee::proc_macros::rpc;
 #[cfg(feature = "rpc-server")]
 use crate::RoomError;
 use crate::{
-    ClientEvent, ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InviteId,
+    ClientEvent, ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InvitePassword,
     JwtEncoded, RoomId, RoomOptions,
 };
 
@@ -37,7 +37,7 @@ pub trait RoomRpc {
 
     /// Revokes invite.
     #[method(name = "revoke_invite")]
-    fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InviteId) -> Result<(), RoomError>;
+    fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InvitePassword) -> Result<(), RoomError>;
 
     /// Kicks client.
     #[method(name = "kick")]
@@ -66,7 +66,7 @@ pub trait RoomRpc {
 
     /// Connects to existed room.
     #[subscription(name = "sub_connect", unsubscribe = "unsub_connect", item = ClientEvent)]
-    async fn connect(&self, room_id: RoomId, invite_id: InviteId) -> SubscriptionResult;
+    async fn connect(&self, room_id: RoomId, invite_id: InvitePassword) -> SubscriptionResult;
 
     /// Subscribes to receive the file block by block.
     #[subscription(name = "sub_download", unsubscribe = "unsub_download", item = FileData)]

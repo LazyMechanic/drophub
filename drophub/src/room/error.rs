@@ -1,7 +1,7 @@
 use jsonrpsee::types::{ErrorObject, ErrorObjectOwned};
 use serde::de::Error;
 
-use crate::{ClientId, DownloadProcId, FileId, InviteId, RoomId};
+use crate::{ClientId, DownloadProcId, FileId, InvitePassword, RoomId};
 
 pub const COMMON_CODE: i32 = -40000;
 pub const NOT_FOUND_CODE: i32 = -40001;
@@ -20,7 +20,7 @@ pub enum RoomError {
     },
     #[error("Invite not found")]
     InviteNotFound {
-        invite_id: InviteId,
+        invite_password: InvitePassword,
         room_id: RoomId,
     },
     #[error("File not found")]

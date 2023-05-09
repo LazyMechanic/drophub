@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use drophub::{InviteId, RoomId};
+use drophub::{InvitePassword, RoomId};
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::{HtmlFormElement, HtmlInputElement};
 use yew::prelude::*;
@@ -11,7 +11,7 @@ use crate::{routes::Route, validate::use_form_validation};
 #[derive(Debug, Clone, Default)]
 struct State {
     room_id: Option<RoomId>,
-    invite_id: Option<InviteId>,
+    invite_password: Option<InvitePassword>,
 }
 
 #[function_component(ConnectRoom)]
@@ -36,7 +36,7 @@ pub fn connect_room() -> Html {
             state_handle.set(state);
         }
     });
-    let invite_id_onchange = Callback::from({
+    let invite_password_onchange = Callback::from({
         let state_handle = state_handle.clone();
         move |event: Event| {
             let value = event
@@ -45,7 +45,7 @@ pub fn connect_room() -> Html {
                 .value();
 
             let mut state = state_handle.deref().clone();
-            state.invite_id = Some(value);
+            state.invite_password = Some(value);
             state_handle.set(state);
         }
     });
@@ -53,9 +53,16 @@ pub fn connect_room() -> Html {
     let navigator = use_navigator().unwrap_throw();
     let form_onsubmit = Callback::from({
         let state_handle = state_handle.clone();
+        let navigator = navigator.clone();
         move |event: SubmitEvent| {
-            // TODO: send api request
-            // TODO: validate form via check_validity
+            let elem = event
+                .target_dyn_into::<HtmlFormElement>()
+                .expect_throw("failed to cast to HtmlFormElement");
+
+            if elem.check_validity() {
+                // TODO: send api request
+                navigator.push(&Route::Room);
+            }
         }
     });
     let cancel_onclick = Callback::from(move |_| navigator.push(&Route::Home));
@@ -93,14 +100,14 @@ pub fn connect_room() -> Html {
                     <div class="mb-3 form-floating">
                         <input
                             class="form-control"
-                            id="inviteIdInput"
+                            id="invitePasswordInput"
                             type="password"
                             placeholder="qwerty123456"
                             required=true
-                            onchange={invite_id_onchange}
-                            value={state_handle.invite_id.clone()}
+                            onchange={invite_password_onchange}
+                            value={state_handle.invite_password.clone()}
                         />
-                        <label for="inviteIdInput">{ "Invite ID" }</label>
+                        <label for="invitePasswordInput">{ "Invite ID" }</label>
                         <div class="invalid-feedback">{ "Please provide valid invite ID." }</div>
                     </div>
                     <button

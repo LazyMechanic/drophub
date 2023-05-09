@@ -8,8 +8,8 @@ use std::{
 
 use anyhow::anyhow;
 use drophub::{
-    ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InviteId, RoomError, RoomId,
-    RoomInfo, RoomOptions, UploadRequest,
+    ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InvitePassword, RoomError,
+    RoomId, RoomInfo, RoomOptions, UploadRequest,
 };
 use passwords::PasswordGenerator;
 use replace_with::replace_with_or_default;
@@ -25,7 +25,7 @@ pub struct Room {
     host_id: ClientId,
     clients: HashMap<ClientId, Client>,
     files: HashMap<FileId, File>,
-    invites: TtlCache<InviteId, Invite>,
+    invites: TtlCache<InvitePassword, Invite>,
     downloads: HashMap<DownloadProcId, DownloadProc>,
     encryption: bool,
     capacity: usize,
@@ -116,28 +116,28 @@ impl Room {
 
     pub fn generate_invite(&mut self) -> Result<Invite, RoomError> {
         loop {
-            let invite_id = self
+            let invite_password = self
                 .invite_gen
                 .generate_one()
                 .map_err(|err| anyhow!("{}", err))?;
 
-            if !self.invites.contains_key(&invite_id) {
+            if !self.invites.contains_key(&invite_password) {
                 let invite = Invite {
-                    id: invite_id.clone(),
+                    password: invite_password.clone(),
                     room_id: self.id,
                     exp: OffsetDateTime::now_utc().add(self.invite_ttl),
                 };
                 self.invites
-                    .insert(invite_id, invite.clone(), self.invite_ttl);
+                    .insert(invite_password, invite.clone(), self.invite_ttl);
                 break Ok(invite);
             }
         }
     }
 
-    pub fn revoke_invite(&mut self, invite_id: InviteId) -> Result<(), RoomError> {
+    pub fn revoke_invite(&mut self, invite_id: InvitePassword) -> Result<(), RoomError> {
         if self.invites.remove(&invite_id).is_none() {
             return Err(RoomError::InviteNotFound {
-                invite_id,
+                invite_password: invite_id,
                 room_id: self.id,
             });
         }
@@ -169,13 +169,13 @@ impl Room {
     pub fn add_client(
         &mut self,
         client: Client,
-        invite_id: InviteId,
+        invite_id: InvitePassword,
     ) -> Result<broadcast::Receiver<RoomInfo>, RoomError> {
         let _ = self
             .invites
             .remove(&invite_id)
             .ok_or(RoomError::InviteNotFound {
-                invite_id,
+                invite_password: invite_id,
                 room_id: self.id,
             })?;
 

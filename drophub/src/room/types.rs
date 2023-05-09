@@ -14,9 +14,9 @@ use crate::JwtEncoded;
 
 pub type Crc32Hash = u32;
 pub type RoomId = u64;
-pub type InviteId = String;
 pub type FileId = Crc32Hash;
 pub type ClientId = Uuid;
+pub type InvitePassword = String;
 pub type DownloadProcId = Uuid;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -40,12 +40,12 @@ pub struct RoomInfo {
     pub host_id: ClientId,
     pub files: HashMap<FileId, FileMeta>,
     pub clients: Vec<ClientId>,
-    pub invites: Vec<InviteId>,
+    pub invites: Vec<InvitePassword>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Invite {
-    pub id: InviteId,
+    pub password: InvitePassword,
     pub room_id: RoomId,
     pub exp: OffsetDateTime,
 }

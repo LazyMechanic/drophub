@@ -44,7 +44,7 @@ async fn connect() {
     let invite = client.invite(host_jwt).await.unwrap();
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
     let mut guest1_sub = client
-        .connect(invite.room_id, invite.id.clone())
+        .connect(invite.room_id, invite.password.clone())
         .await
         .unwrap();
     assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::Init(_))));
@@ -52,7 +52,10 @@ async fn connect() {
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.clients.len() == 2);
 
     // Connect by used invite
-    assert_matches!(client.connect(room_info.room_id, invite.id).await, Err(_));
+    assert_matches!(
+        client.connect(room_info.room_id, invite.password).await,
+        Err(_)
+    );
 }
 
 #[tokio::test]
@@ -79,7 +82,10 @@ async fn invite() {
     let invite = client.invite(host_jwt.clone()).await.unwrap();
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
 
-    let mut guest_sub = client.connect(invite.room_id, invite.id).await.unwrap();
+    let mut guest_sub = client
+        .connect(invite.room_id, invite.password)
+        .await
+        .unwrap();
     let ClientEvent::Init(guest_jwt) = guest_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
 
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0 && info.clients.len() == 2);
@@ -121,13 +127,17 @@ async fn invite_revoke() {
     assert_matches!(client.invite(host_jwt.clone()).await, Err(_));
 
     assert_matches!(
-        client.revoke_invite(host_jwt.clone(), invite1.id).await,
+        client
+            .revoke_invite(host_jwt.clone(), invite1.password)
+            .await,
         Ok(_)
     );
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
 
     assert_matches!(
-        client.revoke_invite(host_jwt.clone(), invite2.id).await,
+        client
+            .revoke_invite(host_jwt.clone(), invite2.password)
+            .await,
         Ok(_)
     );
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0);
@@ -155,7 +165,7 @@ async fn kick() {
     let invite = client.invite(host_jwt.clone()).await.unwrap();
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
     let mut guest1_sub = client
-        .connect(invite.room_id, invite.id.clone())
+        .connect(invite.room_id, invite.password.clone())
         .await
         .unwrap();
     assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::Init(_))));
@@ -225,7 +235,7 @@ async fn remove_file() {
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
 
     let mut guest1_sub = client
-        .connect(invite.room_id, invite.id.clone())
+        .connect(invite.room_id, invite.password.clone())
         .await
         .unwrap();
     let ClientEvent::Init(guest1_jwt) = guest1_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
@@ -276,7 +286,10 @@ async fn download_file() {
     let invite = client.invite(host_jwt.clone()).await.unwrap();
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 1);
 
-    let mut guest_sub = client.connect(invite.room_id, invite.id).await.unwrap();
+    let mut guest_sub = client
+        .connect(invite.room_id, invite.password)
+        .await
+        .unwrap();
     let ClientEvent::Init(guest_jwt) = guest_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
 
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0 && info.clients.len() == 2);

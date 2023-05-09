@@ -4,7 +4,7 @@ use std::{ops::Add, pin::pin};
 
 use dashmap::{mapref::one::RefMut, DashMap};
 use drophub::{
-    ClientEvent, ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InviteId,
+    ClientEvent, ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InvitePassword,
     JwtEncoded, RoomError, RoomId, RoomOptions, RoomRpcServer,
 };
 use jsonrpsee::{
@@ -65,7 +65,7 @@ impl RoomRpcServer for RoomRpc {
     }
 
     #[instrument(skip(self, jwt), err(Debug))]
-    fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InviteId) -> Result<(), RoomError> {
+    fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InvitePassword) -> Result<(), RoomError> {
         let jwt = Jwt::decode(&jwt, &self.cfg.jwt.token_secret)?;
         let _span = jwt.span().enter();
 
@@ -247,7 +247,7 @@ impl RoomRpcServer for RoomRpc {
         &self,
         subscription_sink: PendingSubscriptionSink,
         room_id: RoomId,
-        invite_id: InviteId,
+        invite_id: InvitePassword,
     ) -> SubscriptionResult {
         let (upload_tx, mut upload_rx) = mpsc::unbounded_channel();
         let client = Client::new(ClientRole::Guest, upload_tx);
