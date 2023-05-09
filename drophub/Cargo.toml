@@ -28,4 +28,4 @@ default = ["jsonrpsee/macros"]
 
 rpc-server = ["jsonrpsee/server", "jsonrpsee/macros"]
 rpc-client-ws = ["jsonrpsee/ws-client", "jsonrpsee/macros"]
-rpc-client-wasm = ["jsonrpsee/wasm-client", "jsonrpsee/macros", "uuid/js"]
+rpc-client-wasm = ["jsonrpsee/wasm-client", "jsonrpsee/macros", "uuid/js", "time/wasm-bindgen"]

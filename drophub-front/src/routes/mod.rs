@@ -4,7 +4,7 @@ pub mod home;
 pub mod not_found;
 pub mod room;
 
-use drophub::{RoomId, RoomOptions};
+use drophub::{InviteId, RoomId, RoomOptions};
 use yew::prelude::*;
 use yew_router::prelude::*;
 

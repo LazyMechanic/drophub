@@ -5,6 +5,8 @@ mod ctx;
 mod error;
 mod routes;
 mod rpc;
+mod store;
+mod validate;
 
 use app::App;
 

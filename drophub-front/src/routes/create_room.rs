@@ -1,12 +1,20 @@
 use std::ops::Deref;
 
+use time::Duration;
 use tracing::instrument;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yew_router::prelude::*;
+use yewdux::prelude::*;
 
-use crate::{ctx::use_app_context, routes::Route};
+use crate::{
+    components::alert::AlertKind,
+    ctx::use_app_context,
+    routes::Route,
+    store,
+    store::{AlertProps, Store},
+};
 
 const MIN_CAPACITY: usize = 2;
 const MAX_CAPACITY: usize = 10;
@@ -31,6 +39,7 @@ impl Default for State {
 pub fn create_room() -> Html {
     let ctx_handle = use_app_context();
     let state_handle = use_state(State::default);
+    let (store, store_dispatch) = use_store::<Store>();
 
     let cap_oninput = Callback::from({
         let state_handle = state_handle.clone();
@@ -56,12 +65,13 @@ pub fn create_room() -> Html {
     });
 
     let navigator = use_navigator().unwrap();
-    let create_onclick = Callback::from({
+    let form_onsubmit = Callback::from({
         let navigator = navigator.clone();
         let state_handle = state_handle.clone();
-        move |_| {
+        move |e: SubmitEvent| {
+            e.prevent_default();
             // TODO: pass room options
-            navigator.push(&Route::Room)
+            // navigator.push(&Route::Room)
         }
     });
     let cancel_onclick = Callback::from(move |_| navigator.push(&Route::Home));
@@ -76,8 +86,9 @@ pub fn create_room() -> Html {
             <div class="border
                         border-2
                         rounded
-                        p-3">
-                <form>
+                        p-3"
+            >
+                <form onsubmit={form_onsubmit}>
                     <div class="mb-3 form-check form-switch">
                         <input
                             class="form-check-input"
@@ -86,7 +97,8 @@ pub fn create_room() -> Html {
                             role="switch"
                             disabled=false
                             checked={state_handle.encryption}
-                            onclick={enc_onclick}/>
+                            onclick={enc_onclick}
+                        />
                         <label class="form-check-label" for="encryptionCheck">{ "Encryption" }</label>
                     </div>
                     <div class="mb-3">
@@ -102,7 +114,8 @@ pub fn create_room() -> Html {
                                 oninput={cap_oninput.clone()}
                                 min={MIN_CAPACITY.to_string()}
                                 max={MAX_CAPACITY.to_string()}
-                                value={state_handle.capacity.to_string()} />
+                                value={state_handle.capacity.to_string()}
+                            />
                             <input
                                 class="form-control
                                        ms-3
@@ -112,7 +125,8 @@ pub fn create_room() -> Html {
                                 oninput={cap_oninput}
                                 min={MIN_CAPACITY.to_string()}
                                 max={MAX_CAPACITY.to_string()}
-                                value={state_handle.capacity.to_string()} />
+                                value={state_handle.capacity.to_string()}
+                            />
                         </div>
                         <label class="form-label" for="capacityRange">{ "Capacity" }</label>
                     </div>
@@ -120,7 +134,6 @@ pub fn create_room() -> Html {
                         type="submit"
                         class="btn
                                btn-primary"
-                        onclick={create_onclick}
                     >
                         { "Create" }
                     </button>
