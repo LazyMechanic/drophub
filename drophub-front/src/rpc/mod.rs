@@ -2,7 +2,6 @@ mod channel;
 
 use drophub::{ClientEvent, RoomRpcClient};
 use jsonrpsee::core::client::Subscription;
-use wasm_bindgen::UnwrapThrowExt;
 use yew::platform::spawn_local;
 
 pub use self::channel::{
@@ -22,7 +21,9 @@ pub async fn run(cfg: Config, mut rpc_rx: RpcRequestRx) {
         .unwrap();
 
     while let Some(req_msg) = rpc_rx.recv().await {
-        if let Err(err) = handle_req_msg(&rpc_client, req_msg).await {}
+        if let Err(err) = handle_req_msg(&rpc_client, req_msg).await {
+            // TODO: show error
+        }
     }
 }
 

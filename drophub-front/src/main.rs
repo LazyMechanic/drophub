@@ -1,7 +1,6 @@
 mod app;
 mod components;
 mod config;
-mod ctx;
 mod error;
 mod routes;
 mod rpc;

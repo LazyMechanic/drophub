@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 use drophub::{InviteId, RoomId};
-use tracing::instrument;
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::{HtmlFormElement, HtmlInputElement};
 use yew::prelude::*;
@@ -16,11 +15,10 @@ struct State {
 }
 
 #[function_component(ConnectRoom)]
-#[instrument]
 pub fn connect_room() -> Html {
     let form_node_ref = use_form_validation();
 
-    let state_handle = use_state(move || State::default());
+    let state_handle = use_state(State::default);
 
     let room_id_onchange = Callback::from({
         let state_handle = state_handle.clone();

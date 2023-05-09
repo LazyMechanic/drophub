@@ -1,20 +1,12 @@
 use std::ops::Deref;
 
-use time::Duration;
-use tracing::instrument;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yew_router::prelude::*;
 use yewdux::prelude::*;
 
-use crate::{
-    components::alert::AlertKind,
-    ctx::use_app_context,
-    routes::Route,
-    store,
-    store::{AlertProps, Store},
-};
+use crate::{routes::Route, store::Store};
 
 const MIN_CAPACITY: usize = 2;
 const MAX_CAPACITY: usize = 10;
@@ -35,9 +27,7 @@ impl Default for State {
 }
 
 #[function_component(CreateRoom)]
-#[instrument]
 pub fn create_room() -> Html {
-    let ctx_handle = use_app_context();
     let state_handle = use_state(State::default);
     let (store, store_dispatch) = use_store::<Store>();
 

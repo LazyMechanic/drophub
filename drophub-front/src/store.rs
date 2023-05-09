@@ -1,20 +1,44 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use drophub::{JwtEncoded, RoomInfo};
 use time::{Duration, OffsetDateTime};
+use wasm_bindgen::UnwrapThrowExt;
 use yewdux::prelude::*;
 
-use crate::components::alert::AlertKind;
+use crate::{components::alert::AlertKind, rpc::RpcRequestTx};
 
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Default, Store)]
 pub struct Store {
+    rpc_tx: Option<RpcRequestTx>,
     pub alerts: Vec<AlertProps>,
+    pub room: Option<Room>,
+}
+
+impl Store {
+    pub fn new(rpc_tx: RpcRequestTx) -> Self {
+        Self {
+            alerts: vec![],
+            rpc_tx: Some(rpc_tx),
+            room: None,
+        }
+    }
+
+    pub fn rpc(&self) -> &RpcRequestTx {
+        self.rpc_tx.as_ref().expect_throw("failed to get rpc_tx")
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Room {
+    pub jwt: JwtEncoded,
+    pub info: RoomInfo,
 }
 
 impl PartialEq for Store {
     fn eq(&self, other: &Self) -> bool {
-        self.alerts.len().eq(&other.alerts.len())
+        self.alerts == other.alerts && self.room == self.room
     }
 }
 

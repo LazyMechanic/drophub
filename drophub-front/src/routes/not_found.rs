@@ -1,8 +1,6 @@
-use tracing::instrument;
 use yew::prelude::*;
 
 #[function_component(NotFound)]
-#[instrument]
 pub fn not_found() -> Html {
     html! {
         <div class="container-fluid

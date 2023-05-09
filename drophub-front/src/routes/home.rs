@@ -1,11 +1,9 @@
-use tracing::instrument;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::routes::Route;
 
 #[function_component(Home)]
-#[instrument]
 pub fn home() -> Html {
     let navigator = use_navigator().unwrap();
 
@@ -31,7 +29,6 @@ pub fn home() -> Html {
     };
 
     let create_room_btn = {
-        let navigator = navigator.clone();
         let onclick = Callback::from(move |_| navigator.push(&Route::CreateRoom));
         html! {
             <button

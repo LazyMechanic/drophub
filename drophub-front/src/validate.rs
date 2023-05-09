@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use web_sys::{Element, HtmlElement, HtmlSelectElement};
+use web_sys::{HtmlElement, HtmlSelectElement};
 use yew::prelude::*;
 
 #[hook]

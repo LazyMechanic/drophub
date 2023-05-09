@@ -1,8 +1,6 @@
-use futures::StreamExt;
 use gloo::timers::callback::Timeout;
 use time::{Duration, OffsetDateTime};
-use wasm_bindgen::{JsValue, UnwrapThrowExt};
-use web_sys::Node;
+use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
 use yewdux::prelude::*;
 

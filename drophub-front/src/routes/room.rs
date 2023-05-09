@@ -1,10 +1,6 @@
-use drophub::{RoomId, RoomOptions};
-use tracing::instrument;
 use yew::prelude::*;
-use yew_hooks::prelude::*;
 
 #[function_component(Room)]
-#[instrument]
 pub fn room() -> Html {
     // let create_room_handle = use_async({
     //     let state_handle = state_handle.clone();

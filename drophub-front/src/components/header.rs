@@ -1,11 +1,9 @@
-use tracing::instrument;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::routes::Route;
 
 #[function_component(Header)]
-#[instrument]
 pub fn header() -> Html {
     html! {
         <nav
