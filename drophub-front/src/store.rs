@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use drophub::{JwtEncoded, RoomInfo};
+use drophub::{ClientId, JwtEncoded, RoomInfo};
 use time::{Duration, OffsetDateTime};
 use wasm_bindgen::UnwrapThrowExt;
 use yewdux::prelude::*;
@@ -33,6 +33,7 @@ impl Store {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Room {
     pub jwt: JwtEncoded,
+    pub client_id: ClientId,
     pub info: RoomInfo,
 }
 

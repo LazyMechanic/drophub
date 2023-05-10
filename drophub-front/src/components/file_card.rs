@@ -1,3 +1,4 @@
+use drophub::FileId;
 use yew::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
@@ -8,6 +9,7 @@ pub struct FileCardProps {
     pub name: String,
     #[prop_or_default]
     pub onclick: Callback<MouseEvent>,
+    #[prop_or_default]
     pub placeholder: bool,
 }
 
@@ -40,10 +42,10 @@ impl FileKind {
 #[function_component(FileCard)]
 pub fn file_card(props: &FileCardProps) -> Html {
     html! {
-        <div class="d-flex
+        <div class="col
+                    d-flex
                     flex-column
-                    align-items-center
-                    p-2"
+                    align-items-center"
         >
             <button
                 class="btn
@@ -60,7 +62,9 @@ pub fn file_card(props: &FileCardProps) -> Html {
                 onclick={&props.onclick}
             >
                 if props.placeholder {
-                    <span class="placeholder col-10"></span>
+                    <span class="placeholder col-10">
+                        {"kind"}
+                    </span>
                 } else {
                     {props.kind.as_str()}
                 }
@@ -73,7 +77,7 @@ pub fn file_card(props: &FileCardProps) -> Html {
                     <span
                         class="placeholder col-12"
                         style="width: 100px;"
-                    ></span>
+                    >{"file.txt"}</span>
                 } else {
                     {props.name.as_str()}
                 }
@@ -90,10 +94,10 @@ pub struct FileUploadProps {
 #[function_component(FileUpload)]
 pub fn file_upload(props: &FileUploadProps) -> Html {
     html! {
-        <div class="d-flex
+        <div class="col
+                    d-flex
                     flex-column
-                    align-items-center
-                    p-2"
+                    align-items-center"
         >
             <button
                 class="btn

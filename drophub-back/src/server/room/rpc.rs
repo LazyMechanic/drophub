@@ -203,7 +203,8 @@ impl RoomRpcServer for RoomRpc {
             let sink = subscription_sink.accept().await?;
             let mut sink_closed = pin!(sink.closed());
 
-            sink.send(ClientEvent::Init(host_jwt).try_into()?).await?;
+            sink.send(ClientEvent::Init(host_jwt, client_id).try_into()?)
+                .await?;
 
             loop {
                 tokio::select! {
@@ -297,7 +298,8 @@ impl RoomRpcServer for RoomRpc {
             let sink = subscription_sink.accept().await?;
             let mut sink_closed = pin!(sink.closed());
 
-            sink.send(ClientEvent::Init(guest_jwt).try_into()?).await?;
+            sink.send(ClientEvent::Init(guest_jwt, client_id).try_into()?)
+                .await?;
 
             loop {
                 tokio::select! {

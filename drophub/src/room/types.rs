@@ -131,7 +131,7 @@ pub struct UploadRequest {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ClientEvent {
-    Init(JwtEncoded),
+    Init(JwtEncoded, ClientId),
     RoomInfo(RoomInfo),
     UploadRequest(UploadRequest),
 }
