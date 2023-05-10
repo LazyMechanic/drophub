@@ -105,7 +105,8 @@ pub fn file_upload(props: &FileUploadProps) -> Html {
                        align-items-center
                        mb-1"
                 style="height: 100px;
-                       width: 100px;"
+                       width: 100px;
+                       border-style: dashed !important;"
                 type="button"
                 onclick={&props.onclick}
             >
