@@ -14,7 +14,7 @@ async fn create() {
         .unwrap();
 
     let mut sub = client.create(RoomOptions::default()).await.unwrap();
-    assert_matches!(sub.next().await, Some(Ok(ClientEvent::Init(_))));
+    assert_matches!(sub.next().await, Some(Ok(ClientEvent::Init(_, _))));
     assert_matches!(
         sub.next().await,
         Some(Ok(ClientEvent::RoomInfo(info))) if info.clients.len() == 1
@@ -32,7 +32,7 @@ async fn connect() {
 
     let mut host_sub = client.create(RoomOptions::default()).await.unwrap();
 
-    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    let ClientEvent::Init(host_jwt, _) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
     let ClientEvent::RoomInfo(room_info) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
 
     // Connect without invite
@@ -47,7 +47,7 @@ async fn connect() {
         .connect(invite.room_id, invite.password.clone())
         .await
         .unwrap();
-    assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::Init(_))));
+    assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::Init(_, _))));
     assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.clients.len() == 2);
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.clients.len() == 2);
 
@@ -75,7 +75,7 @@ async fn invite() {
         .await
         .unwrap();
 
-    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    let ClientEvent::Init(host_jwt, _) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
 
     // Success connect via invite
@@ -86,7 +86,7 @@ async fn invite() {
         .connect(invite.room_id, invite.password)
         .await
         .unwrap();
-    let ClientEvent::Init(guest_jwt) = guest_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    let ClientEvent::Init(guest_jwt, _) = guest_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
 
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0 && info.clients.len() == 2);
     assert_matches!(guest_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0 && info.clients.len() == 2);
@@ -115,7 +115,7 @@ async fn invite_revoke() {
         .await
         .unwrap();
 
-    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    let ClientEvent::Init(host_jwt, _) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
 
     let invite1 = client.invite(host_jwt.clone()).await.unwrap();
@@ -159,7 +159,7 @@ async fn kick() {
 
     let mut host_sub = client.create(RoomOptions::default()).await.unwrap();
 
-    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    let ClientEvent::Init(host_jwt, _) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
 
     let invite = client.invite(host_jwt.clone()).await.unwrap();
@@ -168,7 +168,7 @@ async fn kick() {
         .connect(invite.room_id, invite.password.clone())
         .await
         .unwrap();
-    assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::Init(_))));
+    assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::Init(_, _))));
     assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.clients.len() == 2);
     let ClientEvent::RoomInfo(room_info) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
 
@@ -200,7 +200,7 @@ async fn announce_file() {
         .unwrap();
 
     let mut host_sub = client.create(RoomOptions::default()).await.unwrap();
-    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    let ClientEvent::Init(host_jwt, _) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
 
     let file_id = client
@@ -228,7 +228,7 @@ async fn remove_file() {
         .unwrap();
 
     let mut host_sub = client.create(RoomOptions::default()).await.unwrap();
-    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    let ClientEvent::Init(host_jwt, _) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
 
     let invite = client.invite(host_jwt.clone()).await.unwrap();
@@ -238,7 +238,7 @@ async fn remove_file() {
         .connect(invite.room_id, invite.password.clone())
         .await
         .unwrap();
-    let ClientEvent::Init(guest1_jwt) = guest1_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    let ClientEvent::Init(guest1_jwt, _) = guest1_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
     assert_matches!(guest1_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.clients.len() == 2);
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.clients.len() == 2);
 
@@ -279,7 +279,7 @@ async fn download_file() {
         .unwrap();
 
     let mut host_sub = client.create(RoomOptions::default()).await.unwrap();
-    let ClientEvent::Init(host_jwt) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    let ClientEvent::Init(host_jwt, _) = host_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(_))));
 
     // Success connect via invite
@@ -290,7 +290,7 @@ async fn download_file() {
         .connect(invite.room_id, invite.password)
         .await
         .unwrap();
-    let ClientEvent::Init(guest_jwt) = guest_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
+    let ClientEvent::Init(guest_jwt, _) = guest_sub.next().await.unwrap().unwrap() else { panic!("unexpected event") };
 
     assert_matches!(host_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0 && info.clients.len() == 2);
     assert_matches!(guest_sub.next().await, Some(Ok(ClientEvent::RoomInfo(info))) if info.invites.len() == 0 && info.clients.len() == 2);
