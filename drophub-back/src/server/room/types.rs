@@ -127,6 +127,7 @@ impl Room {
                     room_id: self.id,
                     exp: OffsetDateTime::now_utc().add(self.invite_ttl),
                 };
+                // TODO: remove invite forced after ttl and broadcast updated info
                 self.invites
                     .insert(invite_password, invite.clone(), self.invite_ttl);
                 break Ok(invite);

@@ -1,7 +1,10 @@
 pub mod alert;
+pub mod copy_input;
 pub mod file_card;
 pub mod footer;
 pub mod header;
 pub mod icons;
+pub mod placeholder;
+pub mod qr_code;
 pub mod room_control;
 pub mod room_files;

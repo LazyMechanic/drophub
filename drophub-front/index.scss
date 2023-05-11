@@ -41,3 +41,10 @@ body { height: 100%; }
     color: #af233a;
     border-color: #f4c8cf;
 }
+
+.caret-off::before {
+    display: none !important;
+}
+.caret-off::after {
+    display: none !important;
+}

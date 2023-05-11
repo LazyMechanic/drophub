@@ -15,37 +15,41 @@ pub struct Props {
 #[function_component(RoomFiles)]
 pub fn room_files(props: &Props) -> Html {
     let store = use_store_value::<Store>();
+    let room = &store.room;
 
-    let files = if props.placeholder {
-        std::iter::repeat_with(|| {
-            html! { <FileCard placeholder={true} /> }
-        })
-        .take(5)
-        .collect::<Html>()
-    } else {
-        let room = store.room.as_ref().expect_throw("room not found");
-        room.info
-            .files
-            .iter()
-            .map(|(file_id, file_meta)| {
+    let files = room
+        .info
+        .files
+        .iter()
+        .map(|(file_id, file_meta)| {
+            let onclick = if props.placeholder {
+                Callback::noop()
+            } else {
                 // TODO: add onclick
-                // TODO: determine file kind
-                html! {
-                    <FileCard
-                        kind={FileKind::Unknown}
-                        name={file_meta.name.clone()}
-                        onclick={Callback::noop()}
-                    />
-                }
-            })
-            .collect::<Html>()
-    };
+                Callback::noop()
+            };
 
-    let upload = if props.placeholder {
-        // TODO: add onclick
-        html! { <FileUpload onclick={Callback::noop()} /> }
-    } else {
-        html! { <FileUpload onclick={Callback::noop()} /> }
+            html! {
+                <FileCard
+                    placeholder={props.placeholder}
+                    // TODO: determine file kind
+                    kind={FileKind::Unknown}
+                    name={file_meta.name.clone()}
+                    {onclick}
+                />
+            }
+        })
+        .collect::<Html>();
+
+    let upload = {
+        let onclick = if props.placeholder {
+            Callback::noop()
+        } else {
+            // TODO: add onclick
+            Callback::noop()
+        };
+
+        html! { <FileUpload {onclick} /> }
     };
 
     html! {

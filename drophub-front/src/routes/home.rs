@@ -17,7 +17,8 @@ pub fn home() -> Html {
                        text-center
                        text-nowrap
                        fs-2
-                       position-relative"
+                       position-relative
+                       shadow"
                 id="dhBtnConnectRoom"
                 type="button"
                 disabled=false
@@ -37,7 +38,8 @@ pub fn home() -> Html {
                        text-center
                        text-nowrap
                        fs-2
-                       position-relative"
+                       position-relative
+                       shadow"
                 id="dhBtnCreateRoom"
                 type="button"
                 disabled=false

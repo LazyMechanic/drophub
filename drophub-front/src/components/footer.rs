@@ -13,7 +13,7 @@ pub fn footer() -> Html {
                    text-center
                    align-items-center
                    w-100
-                   bg-light"
+                   bg-dark"
         >
             <ul class="nav nav-underline">
                 <li class="nav-item"><Link<Route> classes="nav-link text-secondary" to={Route::Home}>{ "Home" }</Link<Route>></li>
