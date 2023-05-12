@@ -17,66 +17,18 @@ pub enum AlertKind {
 impl AlertKind {
     fn icon(&self) -> Html {
         match self {
-            AlertKind::Info => html! {
-                <div class="icon-link">
-                    <svg
-                        class="bi
-                               flex-shrink-0 
-                               me-2"
-                        role="img"
-                        aria-label="Info:"
-                        style="height: 1.25em;
-                               width: 1.25em;"
-                    >
-                        <use href="#symbol-info"/>
-                    </svg>
-                </div>
-            },
-            AlertKind::Success => html! {
-                <div class="icon-link">
-                    <svg
-                        class="bi
-                               flex-shrink-0 
-                               me-2"
-                        role="img"
-                        aria-label="Success:"
-                        style="height: 1.25em;
-                               width: 1.25em;"
-                    >
-                        <use href="#symbol-ok"/>
-                    </svg>
-                </div>
-            },
-            AlertKind::Warn => html! {
-                <div class="icon-link">
-                    <svg
-                        class="bi
-                               flex-shrink-0 
-                               me-2"
-                        role="img"
-                        aria-label="Warning:"
-                        style="height: 1.25em;
-                               width: 1.25em;"
-                    >
-                        <use href="#symbol-warn"/>
-                    </svg>
-                </div>
-            },
-            AlertKind::Error => html! {
-                <div class="icon-link">
-                    <svg
-                        class="bi
-                               flex-shrink-0 
-                               me-2"
-                        role="img"
-                        aria-label="Error:"
-                        style="height: 1.25em;
-                               width: 1.25em;"
-                    >
-                        <use href="#symbol-warn"/>
-                    </svg>
-                </div>
-            },
+            AlertKind::Info => {
+                html! { <i class="bi bi-info-circle"></i> }
+            }
+            AlertKind::Success => {
+                html! { <i class="bi bi-check-circle"></i> }
+            }
+            AlertKind::Warn => {
+                html! { <i class="bi bi-exclamation-triangle"></i> }
+            }
+            AlertKind::Error => {
+                html! { <i class="bi bi-x-circle"></i> }
+            }
         }
     }
 
@@ -89,7 +41,7 @@ impl AlertKind {
         }
     }
 
-    fn colors_class(&self) -> &'static str {
+    fn color_class(&self) -> &'static str {
         match self {
             AlertKind::Info => "toast-info",
             AlertKind::Success => "toast-success",
@@ -100,28 +52,32 @@ impl AlertKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Properties)]
-pub struct Props {
-    pub id: String,
-    pub kind: AlertKind,
-    pub message: String,
+struct Props {
+    id: String,
+    kind: AlertKind,
+    message: String,
 }
 
 #[function_component(Alert)]
-pub fn alert(props: &Props) -> Html {
+fn alert(props: &Props) -> Html {
     let icon = props.kind.icon();
     let header_text = props.kind.header_text();
-    let colors_class = props.kind.colors_class();
+    let color_class = props.kind.color_class();
+
+    let toast_classes = classes!("toast", "show", "fade", color_class);
+    let toast_header_classes = classes!("toast-header", color_class);
+
     html! {
         <div
-            class={format!("toast show fade {}", colors_class)}
+            class={toast_classes}
             id={props.id.clone()}
             role="alert"
             aria-live="assertive"
             aria-atomic="true"
         >
-            <div class={format!("toast-header {}", colors_class)}>
+            <div class={toast_header_classes}>
                 {icon}
-                <strong class="me-auto">{ header_text }</strong>
+                <strong class="me-auto">{header_text}</strong>
                 <button
                     class="btn-close"
                     type="button"

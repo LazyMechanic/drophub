@@ -1,11 +1,15 @@
+mod file_card;
+mod file_upload;
+
 use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
 use yewdux::prelude::*;
 
-use crate::{
-    components::file_card::{FileCard, FileKind, FileUpload},
-    store::Store,
+use self::{
+    file_card::{FileCard, FileKind},
+    file_upload::FileUpload,
 };
+use crate::store::Store;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
@@ -54,11 +58,13 @@ pub fn room_files(props: &Props) -> Html {
 
     html! {
         <div class="container-fluid
-                    p-2"
+                    p-3
+                    ps-3
+                    pe-3"
         >
             <div class="row
                         row-cols-auto 
-                        g-2"
+                        g-3"
             >
                 {files}
                 {upload}

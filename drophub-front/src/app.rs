@@ -4,7 +4,7 @@ use yew_router::prelude::*;
 use yewdux::prelude::*;
 
 use crate::{
-    components::{alert::AlertContainer, footer::Footer, header::Header, icons::Icons},
+    components::{AlertContainer, Footer, Header},
     config::Config,
     routes::{switch, Route},
     rpc,
@@ -28,7 +28,6 @@ pub fn app() -> Html {
 
     html! {
         <BrowserRouter>
-            <Icons />
             <div class="d-flex
                         flex-column
                         h-100

@@ -2,7 +2,7 @@ use drophub::FileId;
 use yew::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
-pub struct FileCardProps {
+pub struct Props {
     #[prop_or(FileKind::Unknown)]
     pub kind: FileKind,
     #[prop_or_default]
@@ -40,10 +40,9 @@ impl FileKind {
 // TODO: Make files clickable
 
 #[function_component(FileCard)]
-pub fn file_card(props: &FileCardProps) -> Html {
+pub fn file_card(props: &Props) -> Html {
     html! {
-        <div class="col
-                    d-flex
+        <div class="d-flex
                     flex-column
                     align-items-center"
         >
@@ -82,53 +81,6 @@ pub fn file_card(props: &FileCardProps) -> Html {
                     {props.name.as_str()}
                 }
             </div>
-        </div>
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Properties)]
-pub struct FileUploadProps {
-    pub onclick: Callback<MouseEvent>,
-}
-
-#[function_component(FileUpload)]
-pub fn file_upload(props: &FileUploadProps) -> Html {
-    html! {
-        <div class="col
-                    d-flex
-                    flex-column
-                    align-items-center"
-        >
-            <button
-                class="btn
-                       btn-light
-                       d-flex
-                       border
-                       rounded
-                       justify-content-center
-                       align-items-center
-                       mb-1"
-                style="height: 100px;
-                       width: 100px;
-                       border-style: dashed !important;"
-                type="button"
-                onclick={&props.onclick}
-            >
-                <div
-                    class="icon-link
-                           text-secondary"
-                >
-                    <svg
-                        class="bi"
-                        role="img"
-                        aria-label="Upload"
-                        style="height: 1.25em;
-                               width: 1.25em;"
-                    >
-                        <use href="#symbol-plus"/>
-                    </svg>
-                </div>
-            </button>
         </div>
     }
 }

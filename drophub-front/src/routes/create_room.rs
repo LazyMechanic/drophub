@@ -64,7 +64,6 @@ pub fn create_room() -> Html {
             // navigator.push(&Route::Room)
         }
     });
-    let cancel_onclick = Callback::from(move |_| navigator.push(&Route::Home));
 
     html! {
         <div class="container
@@ -126,15 +125,6 @@ pub fn create_room() -> Html {
                                btn-primary"
                     >
                         { "Create" }
-                    </button>
-                    <button
-                        type="button"
-                        class="btn
-                               btn-outline-danger
-                               ms-2"
-                        onclick={cancel_onclick}
-                    >
-                        { "Cancel" }
                     </button>
                 </form>
             </div>
