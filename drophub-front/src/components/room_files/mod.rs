@@ -58,9 +58,7 @@ pub fn room_files(props: &Props) -> Html {
 
     html! {
         <div class="container-fluid
-                    p-3
-                    ps-3
-                    pe-3"
+                    p-3"
         >
             <div class="row
                         row-cols-auto 

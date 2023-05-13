@@ -9,6 +9,7 @@ pub fn header() -> Html {
         <nav
             class="navbar
                    navbar-expand-lg
+                   shadow
                    bg-dark"
             data-bs-theme="dark"
         >

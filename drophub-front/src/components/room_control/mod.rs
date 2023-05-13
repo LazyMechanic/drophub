@@ -26,13 +26,8 @@ pub fn room_control(props: &Props) -> Html {
                    flex-column
                    text-bg-secondary
                    h-100
-                   p-2
-                   ps-3
-                   pe-3
+                   p-3
                    gap-2"
-            style="box-shadow: -6px 1px 29px 0px rgba(0,0,0,0.33) inset;
--webkit-box-shadow: -6px 1px 29px 0px rgba(0,0,0,0.33) inset;
--moz-box-shadow: -6px 1px 29px 0px rgba(0,0,0,0.33) inset;"
         >
             <RoomInfo placeholder={props.placeholder} />
             <ClientList placeholder={props.placeholder} />
