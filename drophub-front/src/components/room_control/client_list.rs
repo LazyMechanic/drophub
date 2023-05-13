@@ -2,18 +2,34 @@ use drophub::ClientId;
 use yew::prelude::*;
 use yewdux::prelude::*;
 
-use crate::{components::Placeholder, store::Store};
+use crate::{
+    components::{room_control::MenuState, Placeholder},
+    store::Store,
+};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
     pub placeholder: bool,
+    pub menu_state: MenuState,
 }
 
 #[function_component(ClientList)]
 pub fn client_list(props: &Props) -> Html {
     let store = use_store_value::<Store>();
     let room = &store.room;
+
+    let header = match props.menu_state {
+        MenuState::Expanded => html! {
+            <div class="fw-bold">
+                <i class="bi bi-diagram-3 me-2"></i>
+                {"Clients:"}
+            </div>
+        },
+        MenuState::Minimized => html! {
+            <i class="bi bi-diagram-3 text-center"></i>
+        },
+    };
 
     let clients = {
         room.info
@@ -41,6 +57,19 @@ pub fn client_list(props: &Props) -> Html {
                     }
                 );
 
+                let btn_content = match props.menu_state {
+                    MenuState::Expanded => html! {
+                        <Placeholder<ClientId>
+                            enabled={props.placeholder}
+                            content={client_id.clone()}
+                            size={12}
+                        />
+                    },
+                    MenuState::Minimized => html! {
+                        <i class="bi bi-person"></i>
+                    },
+                };
+
                 html! {
                     <div
                         class="btn-group
@@ -53,14 +82,8 @@ pub fn client_list(props: &Props) -> Html {
                             data-bs-toggle="dropdown"
                             data-bs-auto-close="outside"
                             aria-expanded="false"
-                            style="padding-left: 1em !important;
-                                   padding-right: 1em !important;"
                         >
-                            <Placeholder<ClientId>
-                                enabled={props.placeholder}
-                                content={client_id.clone()}
-                                size={12}
-                            />
+                            {btn_content}
                         </button>
                         <ul class="dropdown-menu">
                             <li>
@@ -80,8 +103,11 @@ pub fn client_list(props: &Props) -> Html {
     };
 
     html! {
-        <div class="d-flex flex-column gap-2">
-            <div class="fw-bold">{"Clients:"}</div>
+        <div class="d-flex
+                    flex-column 
+                    gap-2"
+        >
+            {header}
             <div class="btn-group-vertical shadow" role="group" aria-label="Clients">
                 {clients}
             </div>

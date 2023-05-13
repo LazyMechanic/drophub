@@ -41,6 +41,7 @@ pub struct RoomInfo {
     pub files: HashMap<FileId, FileMeta>,
     pub clients: Vec<ClientId>,
     pub invites: Vec<InvitePassword>,
+    pub options: RoomOptions,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]

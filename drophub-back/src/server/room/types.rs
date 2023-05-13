@@ -27,8 +27,7 @@ pub struct Room {
     files: HashMap<FileId, File>,
     invites: TtlCache<InvitePassword, Invite>,
     downloads: HashMap<DownloadProcId, DownloadProc>,
-    encryption: bool,
-    capacity: usize,
+    options: RoomOptions,
     block_size: usize,
     invite_ttl: Duration,
     info_tx: broadcast::Sender<RoomInfo>,
@@ -44,8 +43,7 @@ impl Debug for Room {
             .field("files", &self.files)
             .field("invites", &"{ ... }")
             .field("downloads", &self.downloads)
-            .field("encryption", &self.encryption)
-            .field("capacity", &self.capacity)
+            .field("options", &self.options)
             .field("block_size", &self.block_size)
             .field("invite_ttl", &self.invite_ttl)
             .field("info_tx", &"{ ... }")
@@ -69,8 +67,7 @@ impl Room {
             files: Default::default(),
             invites: TtlCache::new(usize::MAX),
             downloads: Default::default(),
-            encryption: options.encryption,
-            capacity: options.capacity,
+            options,
             block_size: cfg.block_size,
             invite_ttl: cfg.invite_ttl,
             info_tx,
@@ -301,6 +298,7 @@ impl Room {
                 .iter()
                 .map(|(invite_id, _)| invite_id.clone())
                 .collect(),
+            options: self.options.clone(),
         }
     }
 

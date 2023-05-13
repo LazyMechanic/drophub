@@ -3,7 +3,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use drophub::{ClientId, FileMeta, InvitePassword, JwtEncoded, RoomInfo};
+use drophub::{ClientId, FileMeta, InvitePassword, JwtEncoded, RoomInfo, RoomOptions};
 use lazy_static::lazy_static;
 use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
@@ -138,6 +138,10 @@ impl Room {
                             "oug19b23".into(),
                             "11jie8fd".into(),
                         ],
+                        options: RoomOptions {
+                            encryption: false,
+                            capacity: 10,
+                        },
                     },
                 }
             };
@@ -214,6 +218,10 @@ impl Room {
                             "oug19b23".into(),
                             "11jie8fd".into(),
                         ],
+                        options: RoomOptions {
+                            encryption: false,
+                            capacity: 10,
+                        },
                     },
                 }
             };

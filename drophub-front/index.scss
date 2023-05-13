@@ -45,6 +45,12 @@ body { height: 100%; }
 .caret-off::before {
     display: none !important;
 }
+
 .caret-off::after {
     display: none !important;
+}
+
+.btn-like-li {
+    padding-left: 1em !important;
+    padding-right: 1em !important;
 }
