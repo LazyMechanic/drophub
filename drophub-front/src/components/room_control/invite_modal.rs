@@ -109,7 +109,7 @@ pub fn invite_modal(props: &Props) -> Html {
                                    btn-danger"
                             type="button"
                             data-bs-dismiss="modal"
-                            // TODO: add revoke op
+                            // TODO: add onclick event
                         >
                             {"Revoke"}
                         </button>

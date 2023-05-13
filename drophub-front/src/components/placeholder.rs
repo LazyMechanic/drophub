@@ -10,8 +10,6 @@ where
     #[prop_or(true)]
     pub enabled: bool,
     pub content: T,
-    #[prop_or(6)]
-    pub size: usize,
     #[prop_or_default]
     pub classes: Classes,
 }
@@ -22,13 +20,12 @@ where
     T: PartialEq + Display,
 {
     if props.enabled {
-        let classes = classes!(
-            "placeholder",
-            format!("col-{}", props.size),
-            props.classes.clone()
-        );
+        let classes = classes!("placeholder", props.classes.clone());
         html! {
-            <span class={classes}>
+            <span
+                class={classes}
+                style="vertical-align: baseline;"
+            >
                 {&props.content}
             </span>
         }

@@ -23,7 +23,7 @@ pub fn client_list(props: &Props) -> Html {
         MenuState::Expanded => html! {
             <div class="fw-bold">
                 <i class="bi bi-diagram-3 me-2"></i>
-                {"Clients:"}
+                {"Clients"}
             </div>
         },
         MenuState::Minimized => html! {
@@ -62,7 +62,6 @@ pub fn client_list(props: &Props) -> Html {
                         <Placeholder<ClientId>
                             enabled={props.placeholder}
                             content={client_id.clone()}
-                            size={12}
                         />
                     },
                     MenuState::Minimized => html! {
@@ -71,10 +70,8 @@ pub fn client_list(props: &Props) -> Html {
                 };
 
                 html! {
-                    <div
-                        class="btn-group
-                               dropend"
-                        role="group"
+                    <div class="btn-group
+                                dropend"
                     >
                         <button
                             class={btn_classes}

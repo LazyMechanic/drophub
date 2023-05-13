@@ -23,7 +23,11 @@ pub fn room_info(props: &Props) -> Html {
         MenuState::Expanded => html! {
             <div class="fw-bold">
                 <i class="bi bi-info-square me-2"></i>
-                {"Room info:"}
+                {"Room "}
+                <Placeholder<RoomId>
+                    enabled={props.placeholder}
+                    content={room.info.room_id}
+                />
             </div>
         },
         MenuState::Minimized => html! {
@@ -31,43 +35,23 @@ pub fn room_info(props: &Props) -> Html {
         },
     };
 
-    let room_id = match props.menu_state {
-        MenuState::Expanded => html! {
-            <li class="list-group-item">
-                <div class="fw-bold">{ "Room ID:" }</div>
-                <Placeholder<RoomId>
-                    enabled={props.placeholder}
-                    content={room.info.room_id}
-                    size={7}
-                />
-            </li>
-        },
-        MenuState::Minimized => html! {
-            // TODO: add tooltip
-            <li class="list-group-item">
-                <i class="bi bi-123"></i>
-            </li>
-        },
-    };
-    let host_id = match props.menu_state {
-        MenuState::Expanded => html! {
-            <li class="list-group-item">
-                <div class="fw-bold">{ "Host ID:" }</div>
-                <span class="font-monospace">
-                    <Placeholder<ClientId>
-                        enabled={props.placeholder}
-                        content={room.info.host_id}
-                        size={12}
-                    />
-                </span>
-            </li>
-        },
-        MenuState::Minimized => html! {
-            // TODO: add tooltip
-            <li class="list-group-item">
-                <i class="bi bi-person-check"></i>
-            </li>
-        },
+    let info_btn = {
+        let content = match props.menu_state {
+            MenuState::Expanded => html! { <>{"Info"}</>},
+            MenuState::Minimized => html! { <i class="bi bi-sliders"></i> },
+        };
+
+        html! {
+            <button
+                class="btn
+                       btn-light"
+                type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#roomInfoModal"
+            >
+                {content}
+            </button>
+        }
     };
 
     html! {
@@ -76,10 +60,7 @@ pub fn room_info(props: &Props) -> Html {
                     gap-2"
         >
             {header}
-            <ul class="list-group shadow">
-                {room_id}
-                {host_id}
-            </ul>
+            {info_btn}
         </div>
     }
 }

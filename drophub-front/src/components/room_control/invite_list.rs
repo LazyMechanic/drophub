@@ -23,7 +23,7 @@ pub fn invite_list(props: &Props) -> Html {
         MenuState::Expanded => html! {
             <div class="fw-bold">
                 <i class="bi bi-envelope-check me-2"></i>
-                {"Invites:"}
+                {"Invites"}
             </div>
         },
         MenuState::Minimized => html! {
@@ -68,7 +68,6 @@ pub fn invite_list(props: &Props) -> Html {
                         <Placeholder<InvitePassword>
                             enabled={props.placeholder}
                             content={invite_password.clone()}
-                            size={6}
                         />
                     },
                     MenuState::Minimized => html! {
