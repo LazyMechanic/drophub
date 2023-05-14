@@ -1,12 +1,15 @@
 use std::ops::Deref;
 
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
-use web_sys::HtmlInputElement;
+use web_sys::{HtmlFormElement, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::*;
 use yewdux::prelude::*;
 
-use crate::{routes::Route, store::Store};
+use crate::{
+    routes::{create_room_load::Query, Route},
+    store::Store,
+};
 
 const MIN_CAPACITY: usize = 2;
 const MAX_CAPACITY: usize = 10;
@@ -58,10 +61,23 @@ pub fn create_room() -> Html {
     let form_onsubmit = Callback::from({
         let navigator = navigator.clone();
         let state_handle = state_handle.clone();
-        move |e: SubmitEvent| {
-            e.prevent_default();
-            // TODO: pass room options
-            // navigator.push(&Route::Room)
+        move |event: SubmitEvent| {
+            let elem = event
+                .target_dyn_into::<HtmlFormElement>()
+                .expect_throw("failed to cast to HtmlFormElement");
+
+            if elem.check_validity() {
+                // TODO: send api request
+                navigator
+                    .push_with_query(
+                        &Route::CreateRoomLoad,
+                        &Query {
+                            encryption: state_handle.encryption,
+                            capacity: state_handle.capacity,
+                        },
+                    )
+                    .expect_throw("failed to change route to CreateRoomLoad");
+            }
         }
     });
 
@@ -84,7 +100,7 @@ pub fn create_room() -> Html {
                             id="encryptionCheck"
                             type="checkbox"
                             role="switch"
-                            disabled=false
+                            disabled=true
                             checked={state_handle.encryption}
                             onclick={enc_onclick}
                         />
