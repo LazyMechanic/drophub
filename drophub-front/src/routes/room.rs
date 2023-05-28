@@ -52,7 +52,7 @@ pub fn room() -> Html {
     let state_handle = use_state(State::default);
     let (room_store, room_store_dispatch) = use_room_store();
     let alert_man = use_alert_manager();
-    let location = use_location().expect_alert(&alert_man, "failed to get location");
+    let location = use_location().expect_alert(&alert_man, "Failed to get location");
 
     use_effect_with_deps(
         {
@@ -75,8 +75,9 @@ pub fn room() -> Html {
                 }
                 Err(q_err) => {
                     state_handle.set(State { query: None });
-                    alert_man
-                        .show_alert(AlertProps::error(format!("Invalid URL query: {}", q_err)));
+                    alert_man.show_alert(AlertProps::error(format!(
+                        "Failed to parse URL query: {q_err:?}"
+                    )));
                 }
             }
         },

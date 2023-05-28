@@ -65,7 +65,7 @@ fn alert(props: &Props) -> Html {
     let header_text = props.kind.header_text();
     let color_class = props.kind.color_class();
 
-    let toast_classes = classes!("toast", "show", "fade", color_class);
+    let toast_classes = classes!("toast", "toast-show", "show", color_class);
     let toast_header_classes = classes!("toast-header", color_class);
 
     html! {
@@ -117,13 +117,13 @@ pub fn alert_container() -> Html {
 
             let alert_container = alert_container
                 .cast::<Element>()
-                .expect_throw("failed to cast alert container to Element");
+                .expect_throw("Failed to cast alert container to Element");
 
             let mut clear_handles = Vec::with_capacity(alert_man.alerts().len());
 
             for (alert_id, alert_props) in alert_man.alerts() {
                 tracing::debug!(?alert_id, ?alert_props, "Show alert");
-                let timeout_delay = {
+                let fade_timeout_delay = {
                     let now = OffsetDateTime::now_utc();
                     let timeout_delay = alert_props.delay - (now - alert_props.init_date());
                     match timeout_delay {
@@ -131,17 +131,40 @@ pub fn alert_container() -> Html {
                         d => d,
                     }
                 };
-                // TODO: add fade on remove
-                let timeout_handle = Timeout::new(timeout_delay.whole_milliseconds() as u32, {
-                    let alert_man = alert_man.clone();
-                    let alert_id = alert_id.clone();
-                    move || alert_man.hide_alert(&alert_id)
-                })
-                .forget();
+                let hide_timeout_delay = fade_timeout_delay + Duration::seconds(1);
+
+                let alert_elem = alert_container
+                    .query_selector(&format!("#{alert_id}"))
+                    .expect_throw("Failed to get alert")
+                    .expect_throw("Alert not found");
+
+                let fade_timeout_handle =
+                    Timeout::new(fade_timeout_delay.whole_milliseconds() as u32, move || {
+                        tracing::debug!(id = ?alert_elem.id(), "Fade alert");
+                        alert_elem
+                            .class_list()
+                            .replace("toast-show", "toast-fade")
+                            .expect_throw("Failed to replace 'toast-show' to 'toast-fade'");
+                    })
+                    .forget();
+                let hide_timeout_handle =
+                    Timeout::new(hide_timeout_delay.whole_milliseconds() as u32, {
+                        let alert_man = alert_man.clone();
+                        let alert_id = alert_id.clone();
+                        move || {
+                            tracing::debug!(id = ?alert_id, "Hide alert");
+                            alert_man.hide_alert(&alert_id)
+                        }
+                    })
+                    .forget();
                 let clear_handle = move || {
                     web_sys::Window::clear_timeout_with_handle(
                         &web_sys::window().unwrap_throw(),
-                        timeout_handle.as_f64().unwrap_throw() as i32,
+                        fade_timeout_handle.as_f64().unwrap_throw() as i32,
+                    );
+                    web_sys::Window::clear_timeout_with_handle(
+                        &web_sys::window().unwrap_throw(),
+                        hide_timeout_handle.as_f64().unwrap_throw() as i32,
                     );
                 };
 
