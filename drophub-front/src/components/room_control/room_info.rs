@@ -4,7 +4,7 @@ use yewdux::prelude::*;
 
 use crate::{
     components::{room_control::MenuState, Placeholder},
-    store::Store,
+    hooks::use_room_store_value,
 };
 
 #[derive(Debug, Clone, PartialEq, Properties)]
@@ -16,7 +16,7 @@ pub struct Props {
 
 #[function_component(RoomInfo)]
 pub fn room_info(props: &Props) -> Html {
-    let store = use_store_value::<Store>();
+    let store = use_room_store_value();
     let room = &store.room;
 
     let header = match props.menu_state {

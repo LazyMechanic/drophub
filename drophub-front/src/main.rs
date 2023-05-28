@@ -2,9 +2,10 @@ mod app;
 mod components;
 mod config;
 mod error;
+mod hooks;
 mod routes;
 mod rpc;
-mod store;
+mod unwrap_alert_ext;
 mod validate;
 
 use app::App;

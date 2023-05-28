@@ -5,7 +5,7 @@ use yewdux::prelude::*;
 
 use crate::{
     components::{CopyInput, QrCode},
-    store::Store,
+    hooks::use_room_store_value,
 };
 
 #[derive(Debug, Clone, PartialEq, Properties)]
@@ -23,7 +23,7 @@ struct State {
 
 #[function_component(InviteModal)]
 pub fn invite_modal(props: &Props) -> Html {
-    let store = use_store_value::<Store>();
+    let store = use_room_store_value();
     let state_handle = use_state_eq({
         let store = store.clone();
         move || {
@@ -89,7 +89,7 @@ pub fn invite_modal(props: &Props) -> Html {
                                 <h6>{"3. Enter credentials manually"}</h6>
                                 <div class="d-flex
                                             flex-row
-                                            gap-2"
+                                            gap-3"
                                 >
                                     <div>
                                         <span>{"Room ID"}</span>

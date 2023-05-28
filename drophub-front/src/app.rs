@@ -1,14 +1,15 @@
 use wasm_bindgen::UnwrapThrowExt;
 use yew::{platform::spawn_local, prelude::*};
+use yew_hooks::use_effect_once;
 use yew_router::prelude::*;
 use yewdux::prelude::*;
 
 use crate::{
     components::{AlertContainer, Footer, Header},
     config::Config,
+    hooks,
     routes::{switch, Route},
     rpc,
-    store::Store,
 };
 
 #[function_component(App)]
@@ -18,13 +19,10 @@ pub fn app() -> Html {
     spawn_local(rpc::run(cfg, rpc_rx));
 
     // Init store
-    use_effect_with_deps(
-        move |_| {
-            Dispatch::<Store>::new().set(Store::new(rpc_tx));
-            || {}
-        },
-        (),
-    );
+    use_effect_once(move || {
+        hooks::init_rpc(rpc_tx);
+        || {}
+    });
 
     html! {
         <BrowserRouter>
@@ -35,8 +33,8 @@ pub fn app() -> Html {
             >
                 <header><Header /></header>
                 <main class="flex-grow-1">
-                    <AlertContainer />
                     <Switch<Route> render={switch} />
+                    <AlertContainer />
                 </main>
                 <footer><Footer /></footer>
             </div>

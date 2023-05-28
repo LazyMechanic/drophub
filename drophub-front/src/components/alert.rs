@@ -1,10 +1,11 @@
 use gloo::timers::callback::Timeout;
 use time::{Duration, OffsetDateTime};
 use wasm_bindgen::UnwrapThrowExt;
+use web_sys::Element;
 use yew::prelude::*;
 use yewdux::prelude::*;
 
-use crate::store::Store;
+use crate::hooks::use_alert_manager;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum AlertKind {
@@ -18,16 +19,16 @@ impl AlertKind {
     fn icon(&self) -> Html {
         match self {
             AlertKind::Info => {
-                html! { <i class="bi bi-info-circle"></i> }
+                html! { <i class="bi bi-info-circle me-2"></i> }
             }
             AlertKind::Success => {
-                html! { <i class="bi bi-check-circle"></i> }
+                html! { <i class="bi bi-check-circle me-2"></i> }
             }
             AlertKind::Warn => {
-                html! { <i class="bi bi-exclamation-triangle"></i> }
+                html! { <i class="bi bi-exclamation-triangle me-2"></i> }
             }
             AlertKind::Error => {
-                html! { <i class="bi bi-x-circle"></i> }
+                html! { <i class="bi bi-x-circle me-2"></i> }
             }
         }
     }
@@ -93,20 +94,38 @@ fn alert(props: &Props) -> Html {
 
 #[function_component(AlertContainer)]
 pub fn alert_container() -> Html {
-    let (store, dispatch) = use_store::<Store>();
+    let alert_man = use_alert_manager();
+    let alert_container = use_node_ref();
+
+    let alerts_to_display = alert_man
+        .alerts()
+        .iter()
+        .map(|(alert_id, alert_props)| {
+            html! {
+                <Alert
+                    id={alert_id.clone()}
+                    kind={alert_props.kind}
+                    message={alert_props.message.clone()}
+                />
+            }
+        })
+        .collect::<Html>();
+
     use_effect_with_deps(
-        move |(alerts, dispatch)| {
-            let alert_container = gloo::utils::document()
-                .query_selector("#alertContainer")
-                .expect_throw("failed to select alertContainer")
-                .expect_throw("alertContainer not found");
+        move |(_, alert_container, alert_man)| {
+            tracing::debug!(alerts = ?alert_man.alerts(), "Update alert container");
 
-            let mut clear_handles = Vec::with_capacity(alerts.len());
+            let alert_container = alert_container
+                .cast::<Element>()
+                .expect_throw("failed to cast alert container to Element");
 
-            for (i, alert_props) in alerts.iter().enumerate() {
+            let mut clear_handles = Vec::with_capacity(alert_man.alerts().len());
+
+            for (alert_id, alert_props) in alert_man.alerts() {
+                tracing::debug!(?alert_id, ?alert_props, "Show alert");
                 let timeout_delay = {
                     let now = OffsetDateTime::now_utc();
-                    let timeout_delay = alert_props.delay - (now - alert_props.init_date);
+                    let timeout_delay = alert_props.delay - (now - alert_props.init_date());
                     match timeout_delay {
                         d if d.is_negative() => Duration::ZERO,
                         d => d,
@@ -114,23 +133,9 @@ pub fn alert_container() -> Html {
                 };
                 // TODO: add fade on remove
                 let timeout_handle = Timeout::new(timeout_delay.whole_milliseconds() as u32, {
-                    let alert_container = alert_container.clone();
-                    let alert_props = alert_props.clone();
-                    let dispatch = dispatch.clone();
-                    move || {
-                        tracing::debug!(
-                            "Timeout reached, remove alert {:?}",
-                            alert_props.id_selector()
-                        );
-                        dispatch.reduce_mut(|store| store.alerts.remove(i));
-                        let alert = gloo::utils::document()
-                            .query_selector(alert_props.id_selector())
-                            .expect_throw("failed to select alert")
-                            .expect_throw("alert not found");
-                        alert_container
-                            .remove_child(&alert)
-                            .expect_throw("failed to remove alert");
-                    }
+                    let alert_man = alert_man.clone();
+                    let alert_id = alert_id.clone();
+                    move || alert_man.hide_alert(&alert_id)
                 })
                 .forget();
                 let clear_handle = move || {
@@ -149,22 +154,8 @@ pub fn alert_container() -> Html {
                 }
             }
         },
-        (store.alerts.clone(), dispatch),
+        (alert_man.alerts().len(), alert_container.clone(), alert_man),
     );
-
-    let alerts = store
-        .alerts
-        .iter()
-        .map(|alert_props| {
-            html! {
-                <Alert
-                    id={alert_props.id().to_owned()}
-                    kind={alert_props.kind}
-                    message={alert_props.message.clone()}
-                />
-            }
-        })
-        .collect::<Html>();
 
     html! {
         <div
@@ -174,9 +165,9 @@ pub fn alert_container() -> Html {
                    p-3
                    pt-5
                    position-absolute"
-            id="alertContainer"
+            ref={alert_container}
         >
-            {alerts}
+            {alerts_to_display}
         </div>
     }
 }

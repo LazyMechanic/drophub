@@ -4,7 +4,7 @@ use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
 use yewdux::prelude::*;
 
-use crate::store::Store;
+use crate::hooks::use_room_store_value;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
@@ -21,7 +21,7 @@ struct State {
 
 #[function_component(RoomInfoModal)]
 pub fn room_info_modal(props: &Props) -> Html {
-    let store = use_store_value::<Store>();
+    let store = use_room_store_value();
     let state_handle = use_state_eq({
         let store = store.clone();
         move || State {

@@ -1,51 +1,38 @@
-use std::{
-    collections::HashMap,
-    sync::atomic::{AtomicU64, Ordering},
-};
+use std::{collections::HashMap, rc::Rc};
 
 use drophub::{ClientId, FileMeta, InvitePassword, JwtEncoded, RoomInfo, RoomOptions};
 use lazy_static::lazy_static;
-use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
-use wasm_bindgen::UnwrapThrowExt;
+use yew::prelude::*;
 use yewdux::prelude::*;
 
-use crate::{components::alert::AlertKind, rpc, rpc::RpcRequestTx};
+#[hook]
+pub fn use_room_store() -> (Rc<RoomStore>, Dispatch<RoomStore>) {
+    use_store::<RoomStore>()
+}
 
-static COUNTER: AtomicU64 = AtomicU64::new(0);
+#[hook]
+pub fn use_room_store_value() -> Rc<RoomStore> {
+    use_store_value::<RoomStore>()
+}
 
-#[derive(Debug, Clone, Store)]
-pub struct Store {
-    rpc_tx: RpcRequestTx,
-    pub alerts: Vec<AlertProps>,
-    pub room: Room,
+#[derive(Debug, Clone, PartialEq, Store)]
+pub struct RoomStore {
+    pub room: RoomState,
     pub selected_invite: Option<InvitePassword>,
 }
 
-impl Default for Store {
+impl Default for RoomStore {
     fn default() -> Self {
         Self {
-            rpc_tx: rpc::channel().0,
-            alerts: vec![],
-            room: Room::placeholder_host().clone(),
-            selected_invite: None,
-        }
-    }
-}
-
-impl Store {
-    pub fn new(rpc_tx: RpcRequestTx) -> Self {
-        Self {
-            alerts: vec![],
-            rpc_tx,
-            room: Room::placeholder_host().clone(),
+            room: RoomState::placeholder_host().clone(),
             selected_invite: None,
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Room {
+pub struct RoomState {
     pub client: Client,
     pub info: RoomInfo,
 }
@@ -63,7 +50,7 @@ pub enum ClientRole {
     Guest,
 }
 
-impl Room {
+impl RoomState {
     pub fn placeholder(role: ClientRole) -> &'static Self {
         match role {
             ClientRole::Host => Self::placeholder_host(),
@@ -73,9 +60,9 @@ impl Room {
 
     pub fn placeholder_host() -> &'static Self {
         lazy_static! {
-            static ref ROOM_PLACEHOLDER_HOST: Room = {
+            static ref ROOM_PLACEHOLDER_HOST: RoomState = {
                 let client_id = Uuid::new_v4();
-                Room {
+                RoomState {
                     client: Client {
                         jwt: JwtEncoded {
                             access_token: "".into(),
@@ -152,10 +139,10 @@ impl Room {
 
     pub fn placeholder_guest() -> &'static Self {
         lazy_static! {
-            static ref ROOM_PLACEHOLDER_GUEST: Room = {
+            static ref ROOM_PLACEHOLDER_GUEST: RoomState = {
                 let client_id = Uuid::new_v4();
                 let host_id = Uuid::new_v4();
-                Room {
+                RoomState {
                     client: Client {
                         jwt: JwtEncoded {
                             access_token: "".into(),
@@ -228,64 +215,5 @@ impl Room {
         }
 
         &*ROOM_PLACEHOLDER_GUEST
-    }
-}
-
-impl PartialEq for Store {
-    fn eq(&self, other: &Self) -> bool {
-        self.alerts == other.alerts && self.room == self.room
-    }
-}
-
-pub fn add_alert(dispatch: &Dispatch<Store>, alert: AlertProps) {
-    dispatch.reduce_mut(move |store| store.alerts.push(alert))
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct AlertProps {
-    id: String,
-    pub kind: AlertKind,
-    pub message: String,
-    pub delay: Duration,
-    pub init_date: OffsetDateTime,
-}
-
-impl AlertProps {
-    pub fn new(kind: AlertKind, message: String, delay: Duration) -> Self {
-        Self {
-            id: Self::next_id(),
-            kind,
-            message,
-            delay,
-            init_date: OffsetDateTime::now_utc(),
-        }
-    }
-
-    pub fn info(message: String, delay: Duration) -> Self {
-        Self::new(AlertKind::Info, message, delay)
-    }
-
-    pub fn success(message: String, delay: Duration) -> Self {
-        Self::new(AlertKind::Success, message, delay)
-    }
-
-    pub fn warn(message: String, delay: Duration) -> Self {
-        Self::new(AlertKind::Warn, message, delay)
-    }
-
-    pub fn error(message: String, delay: Duration) -> Self {
-        Self::new(AlertKind::Error, message, delay)
-    }
-
-    pub fn id(&self) -> &str {
-        &self.id[1..]
-    }
-
-    pub fn id_selector(&self) -> &str {
-        &self.id
-    }
-
-    fn next_id() -> String {
-        format!("#alert{}", COUNTER.fetch_add(1, Ordering::Relaxed))
     }
 }

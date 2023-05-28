@@ -9,7 +9,7 @@ use self::{
     file_card::{FileCard, FileKind},
     file_upload::FileUpload,
 };
-use crate::store::Store;
+use crate::hooks::use_room_store_value;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
@@ -18,7 +18,7 @@ pub struct Props {
 
 #[function_component(RoomFiles)]
 pub fn room_files(props: &Props) -> Html {
-    let store = use_store_value::<Store>();
+    let store = use_room_store_value();
     let room = &store.room;
 
     let files = room

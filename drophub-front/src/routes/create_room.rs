@@ -1,14 +1,19 @@
 use std::ops::Deref;
 
-use wasm_bindgen::{JsCast, UnwrapThrowExt};
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::JsCast;
 use web_sys::{HtmlFormElement, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::*;
 use yewdux::prelude::*;
 
 use crate::{
-    routes::{create_room_load::Query, Route},
-    store::Store,
+    hooks::use_alert_manager,
+    routes::{
+        room::{ActionCreate, Query},
+        Route,
+    },
+    unwrap_alert_ext::UnwrapAlertExt,
 };
 
 const MIN_CAPACITY: usize = 2;
@@ -18,6 +23,7 @@ const MAX_CAPACITY: usize = 10;
 struct State {
     capacity: usize,
     encryption: bool,
+    is_loading: bool,
 }
 
 impl Default for State {
@@ -25,6 +31,7 @@ impl Default for State {
         Self {
             capacity: MIN_CAPACITY,
             encryption: false,
+            is_loading: false,
         }
     }
 }
@@ -32,16 +39,31 @@ impl Default for State {
 #[function_component(CreateRoom)]
 pub fn create_room() -> Html {
     let state_handle = use_state(State::default);
-    let (store, store_dispatch) = use_store::<Store>();
+    let alert_man = use_alert_manager();
+    let navigator = use_navigator().expect_alert(&alert_man, "failed to get navigator");
+
+    let form_node_ref = use_node_ref();
+    let enc_node_ref = use_node_ref();
 
     let cap_oninput = Callback::from({
         let state_handle = state_handle.clone();
+        let alert_man = alert_man.clone();
         move |input_event: InputEvent| {
-            let event: Event = input_event.dyn_into().unwrap_throw();
-            let input_elem: HtmlInputElement =
-                event.target().unwrap_throw().dyn_into().unwrap_throw();
+            let event: Event = input_event
+                .dyn_into()
+                .expect_alert(&alert_man, "Failed to cast capacity event to Event");
+            let input_elem: HtmlInputElement = event
+                .target()
+                .expect_alert(&alert_man, "Capacity target not found")
+                .dyn_into()
+                .expect_alert(
+                    &alert_man,
+                    "Failed to cast capacity Event to HtmlInputElement",
+                );
             let value = input_elem.value();
-            let value_int: usize = value.parse().unwrap_throw();
+            let value_int: usize = value
+                .parse()
+                .expect_alert(&alert_man, "Failed to parse capacity");
 
             let mut state = state_handle.deref().clone();
             state.capacity = value_int;
@@ -50,33 +72,42 @@ pub fn create_room() -> Html {
     });
     let enc_onclick = Callback::from({
         let state_handle = state_handle.clone();
+        let enc_node_ref = enc_node_ref.clone();
+        let alert_man = alert_man.clone();
         move |_| {
+            let input_elem = enc_node_ref.cast::<HtmlInputElement>().expect_alert(
+                &alert_man,
+                "Failed to cast encryption checkbox to HtmlInputElement",
+            );
             let mut state = state_handle.deref().clone();
-            state.encryption = !state.encryption;
+            state.encryption = input_elem.checked();
             state_handle.set(state);
         }
     });
 
-    let navigator = use_navigator().unwrap();
     let form_onsubmit = Callback::from({
-        let navigator = navigator.clone();
         let state_handle = state_handle.clone();
+        let navigator = navigator.clone();
+        let alert_man = alert_man.clone();
+        let form_node_ref = form_node_ref.clone();
         move |event: SubmitEvent| {
-            let elem = event
-                .target_dyn_into::<HtmlFormElement>()
-                .expect_throw("failed to cast to HtmlFormElement");
+            event.prevent_default();
+            event.stop_propagation();
+
+            let elem = form_node_ref
+                .cast::<HtmlFormElement>()
+                .expect_alert(&alert_man, "failed to cast to HtmlFormElement");
 
             if elem.check_validity() {
-                // TODO: send api request
                 navigator
                     .push_with_query(
-                        &Route::CreateRoomLoad,
-                        &Query {
+                        &Route::Room,
+                        &Query::Create(ActionCreate {
                             encryption: state_handle.encryption,
                             capacity: state_handle.capacity,
-                        },
+                        }),
                     )
-                    .expect_throw("failed to change route to CreateRoomLoad");
+                    .unwrap_alert(&alert_man);
             }
         }
     });
@@ -93,7 +124,10 @@ pub fn create_room() -> Html {
                         rounded
                         p-3"
             >
-                <form onsubmit={form_onsubmit}>
+                <form
+                    onsubmit={form_onsubmit}
+                    ref={form_node_ref}
+                >
                     <div class="mb-3 form-check form-switch">
                         <input
                             class="form-check-input"
@@ -103,6 +137,7 @@ pub fn create_room() -> Html {
                             disabled=true
                             checked={state_handle.encryption}
                             onclick={enc_onclick}
+                            ref={enc_node_ref}
                         />
                         <label class="form-check-label" for="encryptionCheck">{ "Encryption" }</label>
                     </div>

@@ -6,7 +6,15 @@ use web_sys::{HtmlFormElement, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{routes::Route, validate::use_form_validation};
+use crate::{
+    hooks::use_alert_manager,
+    routes::{
+        room::{ActionConnect, Query},
+        Route,
+    },
+    unwrap_alert_ext::UnwrapAlertExt,
+    validate::use_form_validation,
+};
 
 #[derive(Debug, Clone, Default)]
 struct State {
@@ -16,32 +24,35 @@ struct State {
 
 #[function_component(ConnectRoom)]
 pub fn connect_room() -> Html {
-    let form_node_ref = use_form_validation();
-
     let state_handle = use_state(State::default);
+    let alert_man = use_alert_manager();
+
+    let form_node_ref = use_form_validation();
 
     let room_id_onchange = Callback::from({
         let state_handle = state_handle.clone();
+        let alert_man = alert_man.clone();
         move |event: Event| {
             let value = event
                 .target_dyn_into::<HtmlInputElement>()
-                .expect_throw("failed to cast to HtmlInputElement")
+                .expect_alert(&alert_man, "Failed to cast to HtmlInputElement")
                 .value();
 
             let mut state = state_handle.deref().clone();
             let value_int = value
                 .parse::<RoomId>()
-                .expect_throw("failed to parse room id");
+                .expect_alert(&alert_man, "Failed to parse room id");
             state.room_id = Some(value_int);
             state_handle.set(state);
         }
     });
     let invite_password_onchange = Callback::from({
         let state_handle = state_handle.clone();
+        let alert_man = alert_man.clone();
         move |event: Event| {
             let value = event
                 .target_dyn_into::<HtmlInputElement>()
-                .expect_throw("failed to cast to HtmlInputElement")
+                .expect_alert(&alert_man, "Failed to cast to HtmlInputElement")
                 .value();
 
             let mut state = state_handle.deref().clone();
@@ -53,18 +64,27 @@ pub fn connect_room() -> Html {
     let navigator = use_navigator().unwrap_throw();
     let form_onsubmit = Callback::from({
         let state_handle = state_handle.clone();
+        let alert_man = alert_man.clone();
         let navigator = navigator.clone();
+        let form_node_ref = form_node_ref.clone();
         move |event: SubmitEvent| {
-            let elem = event
-                .target_dyn_into::<HtmlFormElement>()
-                .expect_throw("failed to cast to HtmlFormElement");
+            event.prevent_default();
+            event.stop_propagation();
+
+            let elem = form_node_ref
+                .cast::<HtmlFormElement>()
+                .expect_alert(&alert_man, "Failed to cast to HtmlFormElement");
 
             if elem.check_validity() {
-                // TODO: send api request
-                navigator.push(&Route::ConnectRoomLoad {
-                    room_id: state_handle.room_id.unwrap_throw(),
-                    invite_password: state_handle.invite_password.clone().unwrap_throw(),
-                });
+                navigator
+                    .push_with_query(
+                        &Route::Room,
+                        &Query::Connect(ActionConnect {
+                            room_id: state_handle.room_id.unwrap_throw(),
+                            invite_password: state_handle.invite_password.clone().unwrap_throw(),
+                        }),
+                    )
+                    .unwrap_alert(&alert_man);
             }
         }
     });
