@@ -72,10 +72,28 @@ struct Props {
 
 #[function_component(Alert)]
 fn alert(props: &Props) -> Html {
+    let node_ref = use_node_ref();
+
     let header = {
         let classes = classes!("toast-header", props.kind.color_class());
         let icon = props.kind.icon();
         let text = props.kind.header_text();
+        let onclick = Callback::from({
+            let node_ref = node_ref.clone();
+            move |_| {
+                let elem = node_ref
+                    .cast::<Element>()
+                    .expect_throw("Failed to cast node to 'Element'");
+                let ok = elem
+                    .class_list()
+                    .replace("toast-show", "toast-fade")
+                    .expect_throw("Failed to replace 'toast-show' to 'toast-fade'");
+
+                if ok {
+                    tracing::debug!(id = ?elem.id(), "Fade alert manually");
+                }
+            }
+        });
 
         html! {
             <div class={classes}>
@@ -84,8 +102,7 @@ fn alert(props: &Props) -> Html {
                 <button
                     class="btn-close"
                     type="button"
-                    data-bs-dismiss="toast"
-                    aria-label="Close"
+                    {onclick}
                 >
                 </button>
             </div>
@@ -129,6 +146,7 @@ fn alert(props: &Props) -> Html {
             role="alert"
             aria-live="assertive"
             aria-atomic="true"
+            ref={node_ref}
         >
             {header}
             {body}
@@ -186,11 +204,14 @@ pub fn alert_container() -> Html {
 
                 let fade_timeout_handle =
                     Timeout::new(fade_timeout_delay.whole_milliseconds() as u32, move || {
-                        tracing::debug!(id = ?alert_elem.id(), "Fade alert");
-                        alert_elem
+                        let ok = alert_elem
                             .class_list()
                             .replace("toast-show", "toast-fade")
                             .expect_throw("Failed to replace 'toast-show' to 'toast-fade'");
+
+                        if ok {
+                            tracing::debug!(id = ?alert_elem.id(), "Fade alert");
+                        }
                     })
                     .forget();
                 let hide_timeout_handle =
