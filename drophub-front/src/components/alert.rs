@@ -1,8 +1,9 @@
-use gloo::timers::callback::Timeout;
+use gloo::timers::callback::{Interval, Timeout};
 use time::{Duration, OffsetDateTime};
-use wasm_bindgen::UnwrapThrowExt;
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
 use web_sys::Element;
 use yew::prelude::*;
+use yew_hooks::prelude::*;
 use yewdux::prelude::*;
 
 use crate::hooks::use_alert_manager;
@@ -50,6 +51,15 @@ impl AlertKind {
             AlertKind::Error => "toast-danger",
         }
     }
+
+    fn progress_bar_color_class(&self) -> &'static str {
+        match self {
+            AlertKind::Info => "bg-info",
+            AlertKind::Success => "bg-success",
+            AlertKind::Warn => "bg-warning",
+            AlertKind::Error => "bg-danger",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Properties)]
@@ -57,28 +67,20 @@ struct Props {
     id: String,
     kind: AlertKind,
     message: String,
+    delay: Duration,
 }
 
 #[function_component(Alert)]
 fn alert(props: &Props) -> Html {
-    let icon = props.kind.icon();
-    let header_text = props.kind.header_text();
-    let color_class = props.kind.color_class();
+    let header = {
+        let classes = classes!("toast-header", props.kind.color_class());
+        let icon = props.kind.icon();
+        let text = props.kind.header_text();
 
-    let toast_classes = classes!("toast", "toast-show", "show", color_class);
-    let toast_header_classes = classes!("toast-header", color_class);
-
-    html! {
-        <div
-            class={toast_classes}
-            id={props.id.clone()}
-            role="alert"
-            aria-live="assertive"
-            aria-atomic="true"
-        >
-            <div class={toast_header_classes}>
+        html! {
+            <div class={classes}>
                 {icon}
-                <strong class="me-auto">{header_text}</strong>
+                <strong class="me-auto">{text}</strong>
                 <button
                     class="btn-close"
                     type="button"
@@ -87,7 +89,50 @@ fn alert(props: &Props) -> Html {
                 >
                 </button>
             </div>
+        }
+    };
+
+    let body = {
+        html! {
             <div class="toast-body">{props.message.clone()}</div>
+        }
+    };
+
+    let progress_bar = {
+        let classes = classes!(
+            "progress-bar",
+            "progress-bar-toast",
+            props.kind.progress_bar_color_class()
+        );
+        let style = format!("--dh-toast-delay: {}ms", props.delay.whole_milliseconds());
+        html! {
+            <div
+                class="progress"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                style="height: 10px"
+            >
+                <div
+                    class={classes}
+                    {style}
+                ></div>
+            </div>
+        }
+    };
+
+    let toast_classes = classes!("toast", "toast-show", "show", props.kind.color_class());
+    html! {
+        <div
+            class={toast_classes}
+            id={props.id.clone()}
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+        >
+            {header}
+            {body}
+            {progress_bar}
         </div>
     }
 }
@@ -106,6 +151,7 @@ pub fn alert_container() -> Html {
                     id={alert_id.clone()}
                     kind={alert_props.kind}
                     message={alert_props.message.clone()}
+                    delay={alert_props.delay}
                 />
             }
         })
