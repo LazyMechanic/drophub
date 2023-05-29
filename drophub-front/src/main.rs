@@ -5,7 +5,7 @@ mod error;
 mod hooks;
 mod routes;
 mod rpc;
-mod unwrap_alert_ext;
+mod unwrap_notify_ext;
 mod validate;
 
 use app::App;

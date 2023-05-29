@@ -8,12 +8,12 @@ use yew_router::prelude::*;
 use yewdux::prelude::*;
 
 use crate::{
-    hooks::use_alert_manager,
+    hooks::use_notify,
     routes::{
         room::{ActionCreate, Query},
         Route,
     },
-    unwrap_alert_ext::UnwrapAlertExt,
+    unwrap_notify_ext::UnwrapNotifyExt,
 };
 
 const MIN_CAPACITY: usize = 2;
@@ -39,31 +39,31 @@ impl Default for State {
 #[function_component(CreateRoom)]
 pub fn create_room() -> Html {
     let state_handle = use_state(State::default);
-    let alert_man = use_alert_manager();
-    let navigator = use_navigator().expect_alert(&alert_man, "failed to get navigator");
+    let notify_manager = use_notify();
+    let navigator = use_navigator().expect_notify(&notify_manager, "Failed to get navigator");
 
     let form_node_ref = use_node_ref();
     let enc_node_ref = use_node_ref();
 
     let cap_oninput = Callback::from({
         let state_handle = state_handle.clone();
-        let alert_man = alert_man.clone();
+        let notify_manager = notify_manager.clone();
         move |input_event: InputEvent| {
             let event: Event = input_event
                 .dyn_into()
-                .expect_alert(&alert_man, "Failed to cast capacity event to Event");
+                .expect_notify(&notify_manager, "Failed to cast capacity event to 'Event'");
             let input_elem: HtmlInputElement = event
                 .target()
-                .expect_alert(&alert_man, "Capacity target not found")
+                .expect_notify(&notify_manager, "Capacity target not found")
                 .dyn_into()
-                .expect_alert(
-                    &alert_man,
+                .expect_notify(
+                    &notify_manager,
                     "Failed to cast capacity Event to HtmlInputElement",
                 );
             let value = input_elem.value();
             let value_int: usize = value
                 .parse()
-                .expect_alert(&alert_man, "Failed to parse capacity");
+                .expect_notify(&notify_manager, "Failed to parse capacity");
 
             let mut state = state_handle.deref().clone();
             state.capacity = value_int;
@@ -73,11 +73,11 @@ pub fn create_room() -> Html {
     let enc_onclick = Callback::from({
         let state_handle = state_handle.clone();
         let enc_node_ref = enc_node_ref.clone();
-        let alert_man = alert_man.clone();
+        let notify_manager = notify_manager.clone();
         move |_| {
-            let input_elem = enc_node_ref.cast::<HtmlInputElement>().expect_alert(
-                &alert_man,
-                "Failed to cast encryption checkbox to HtmlInputElement",
+            let input_elem = enc_node_ref.cast::<HtmlInputElement>().expect_notify(
+                &notify_manager,
+                "Failed to cast encryption checkbox to 'HtmlInputElement'",
             );
             let mut state = state_handle.deref().clone();
             state.encryption = input_elem.checked();
@@ -88,7 +88,7 @@ pub fn create_room() -> Html {
     let form_onsubmit = Callback::from({
         let state_handle = state_handle.clone();
         let navigator = navigator.clone();
-        let alert_man = alert_man.clone();
+        let notify_manager = notify_manager.clone();
         let form_node_ref = form_node_ref.clone();
         move |event: SubmitEvent| {
             event.prevent_default();
@@ -96,7 +96,7 @@ pub fn create_room() -> Html {
 
             let elem = form_node_ref
                 .cast::<HtmlFormElement>()
-                .expect_alert(&alert_man, "failed to cast to HtmlFormElement");
+                .expect_notify(&notify_manager, "Failed to cast to 'HtmlFormElement'");
 
             if elem.check_validity() {
                 navigator
@@ -107,7 +107,7 @@ pub fn create_room() -> Html {
                             capacity: state_handle.capacity,
                         }),
                     )
-                    .unwrap_alert(&alert_man);
+                    .unwrap_notify(&notify_manager);
             }
         }
     });

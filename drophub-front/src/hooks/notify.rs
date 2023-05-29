@@ -1,6 +1,5 @@
 use std::{
-    collections::{hash_map::Iter, HashMap},
-    ops::Deref,
+    collections::HashMap,
     rc::Rc,
     sync::atomic::{AtomicU64, Ordering},
 };
@@ -10,63 +9,64 @@ use tracing::instrument;
 use yew::prelude::*;
 use yewdux::prelude::*;
 
-use crate::components::AlertKind;
+use crate::components::NotifyKind;
 
 #[hook]
-pub fn use_alert_manager() -> AlertManager {
-    let (s, d) = use_store::<AlertStore>();
-    AlertManager {
+pub fn use_notify() -> NotifyManager {
+    let (s, d) = use_store::<NotifyStore>();
+    NotifyManager {
         store: s,
         dispatch: d,
     }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Store)]
-struct AlertStore {
-    alerts: HashMap<AlertId, AlertProps>,
+struct NotifyStore {
+    notifies: HashMap<NotifyId, NotifyProps>,
 }
 
 #[derive(Clone, PartialEq)]
-pub struct AlertManager {
-    store: Rc<AlertStore>,
-    dispatch: Dispatch<AlertStore>,
+pub struct NotifyManager {
+    store: Rc<NotifyStore>,
+    dispatch: Dispatch<NotifyStore>,
 }
 
-impl AlertManager {
+impl NotifyManager {
     #[instrument(skip(self))]
-    pub fn show_alert(&self, props: AlertProps) {
+    pub fn show_notify(&self, props: NotifyProps) {
         let id = Self::next_id();
         self.dispatch
-            .reduce_mut(move |store| store.alerts.insert(id, props));
+            .reduce_mut(move |store| store.notifies.insert(id, props));
     }
 
-    pub fn alerts(&self) -> &HashMap<AlertId, AlertProps> {
-        &self.store.alerts
+    pub fn notifies(&self) -> &HashMap<NotifyId, NotifyProps> {
+        &self.store.notifies
     }
 
     #[instrument(skip(self))]
-    pub fn hide_alert(&self, alert_id: &str) {
-        self.dispatch.reduce_mut(move |s| s.alerts.remove(alert_id))
+    pub fn hide_notify(&self, notify_id: &str) {
+        self.dispatch
+            .reduce_mut(move |s| s.notifies.remove(notify_id))
     }
 
-    fn next_id() -> AlertId {
+    fn next_id() -> NotifyId {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
-        format!("alert0{}", COUNTER.fetch_add(1, Ordering::Relaxed))
+        format!("notify0{}", COUNTER.fetch_add(1, Ordering::Relaxed))
     }
 }
 
-pub type AlertId = String;
+pub type NotifyId = String;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct AlertProps {
-    pub kind: AlertKind,
+pub struct NotifyProps {
+    pub kind: NotifyKind,
     pub message: String,
     pub delay: Duration,
     init_date: OffsetDateTime,
 }
 
-impl AlertProps {
-    pub fn new(kind: AlertKind, message: String, delay: Duration) -> Self {
+impl NotifyProps {
+    pub fn new(kind: NotifyKind, message: String, delay: Duration) -> Self {
         Self {
             kind,
             message,
@@ -79,28 +79,28 @@ impl AlertProps {
     where
         T: ToString,
     {
-        Self::new(AlertKind::Info, message.to_string(), Self::def_delay())
+        Self::new(NotifyKind::Info, message.to_string(), Self::def_delay())
     }
 
     pub fn success<T>(message: T) -> Self
     where
         T: ToString,
     {
-        Self::new(AlertKind::Success, message.to_string(), Self::def_delay())
+        Self::new(NotifyKind::Success, message.to_string(), Self::def_delay())
     }
 
     pub fn warn<T>(message: T) -> Self
     where
         T: ToString,
     {
-        Self::new(AlertKind::Warn, message.to_string(), Self::def_delay())
+        Self::new(NotifyKind::Warn, message.to_string(), Self::def_delay())
     }
 
     pub fn error<T>(message: T) -> Self
     where
         T: ToString,
     {
-        Self::new(AlertKind::Error, message.to_string(), Self::def_delay())
+        Self::new(NotifyKind::Error, message.to_string(), Self::def_delay())
     }
 
     pub fn with_delay(mut self, custom_delay: Duration) -> Self {

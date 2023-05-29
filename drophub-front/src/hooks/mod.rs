@@ -1,5 +1,5 @@
-pub mod alert;
+pub mod notify;
 pub mod room;
 pub mod rpc;
 
-pub use self::{alert::*, room::*, rpc::*};
+pub use self::{notify::*, room::*, rpc::*};

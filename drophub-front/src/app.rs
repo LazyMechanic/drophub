@@ -5,7 +5,7 @@ use yew_router::prelude::*;
 use yewdux::prelude::*;
 
 use crate::{
-    components::{AlertContainer, Footer, Header},
+    components::{Footer, Header, NotifyContainer},
     config::Config,
     hooks,
     routes::{switch, Route},
@@ -34,7 +34,7 @@ pub fn app() -> Html {
                 <header><Header /></header>
                 <main class="flex-grow-1">
                     <Switch<Route> render={switch} />
-                    <AlertContainer />
+                    <NotifyContainer />
                 </main>
                 <footer><Footer /></footer>
             </div>

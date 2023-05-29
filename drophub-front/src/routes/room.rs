@@ -7,8 +7,8 @@ use yewdux::prelude::*;
 
 use crate::{
     components::{RoomControl, RoomFiles},
-    hooks::{use_alert_manager, use_room_store, AlertProps, ClientRole, RoomState},
-    unwrap_alert_ext::UnwrapAlertExt,
+    hooks::{use_notify, use_room_store, ClientRole, NotifyProps, RoomState},
+    unwrap_notify_ext::UnwrapNotifyExt,
 };
 
 fn from_str<'de, D, S>(deserializer: D) -> Result<S, D::Error>
@@ -51,8 +51,8 @@ struct State {
 pub fn room() -> Html {
     let state_handle = use_state(State::default);
     let (room_store, room_store_dispatch) = use_room_store();
-    let alert_man = use_alert_manager();
-    let location = use_location().expect_alert(&alert_man, "Failed to get location");
+    let notify_manager = use_notify();
+    let location = use_location().expect_notify(&notify_manager, "Failed to get location");
 
     use_effect_with_deps(
         {
@@ -75,7 +75,7 @@ pub fn room() -> Html {
                 }
                 Err(q_err) => {
                     state_handle.set(State { query: None });
-                    alert_man.show_alert(AlertProps::error(format!(
+                    notify_manager.show_notify(NotifyProps::error(format!(
                         "Failed to parse URL query: {q_err:?}"
                     )));
                 }

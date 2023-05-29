@@ -6,29 +6,29 @@ use yew::prelude::*;
 use yew_hooks::prelude::*;
 use yewdux::prelude::*;
 
-use crate::hooks::use_alert_manager;
+use crate::hooks::use_notify;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum AlertKind {
+pub enum NotifyKind {
     Info,
     Success,
     Warn,
     Error,
 }
 
-impl AlertKind {
+impl NotifyKind {
     fn icon(&self) -> Html {
         match self {
-            AlertKind::Info => {
+            NotifyKind::Info => {
                 html! { <i class="bi bi-info-circle me-2"></i> }
             }
-            AlertKind::Success => {
+            NotifyKind::Success => {
                 html! { <i class="bi bi-check-circle me-2"></i> }
             }
-            AlertKind::Warn => {
+            NotifyKind::Warn => {
                 html! { <i class="bi bi-exclamation-triangle me-2"></i> }
             }
-            AlertKind::Error => {
+            NotifyKind::Error => {
                 html! { <i class="bi bi-x-circle me-2"></i> }
             }
         }
@@ -36,28 +36,28 @@ impl AlertKind {
 
     fn header_text(&self) -> &'static str {
         match self {
-            AlertKind::Info => "Info",
-            AlertKind::Success => "Success",
-            AlertKind::Warn => "Warning",
-            AlertKind::Error => "Error",
+            NotifyKind::Info => "Info",
+            NotifyKind::Success => "Success",
+            NotifyKind::Warn => "Warning",
+            NotifyKind::Error => "Error",
         }
     }
 
     fn color_class(&self) -> &'static str {
         match self {
-            AlertKind::Info => "toast-info",
-            AlertKind::Success => "toast-success",
-            AlertKind::Warn => "toast-warning",
-            AlertKind::Error => "toast-danger",
+            NotifyKind::Info => "notify-info",
+            NotifyKind::Success => "notify-success",
+            NotifyKind::Warn => "notify-warning",
+            NotifyKind::Error => "notify-danger",
         }
     }
 
     fn progress_bar_color_class(&self) -> &'static str {
         match self {
-            AlertKind::Info => "bg-info",
-            AlertKind::Success => "bg-success",
-            AlertKind::Warn => "bg-warning",
-            AlertKind::Error => "bg-danger",
+            NotifyKind::Info => "bg-info",
+            NotifyKind::Success => "bg-success",
+            NotifyKind::Warn => "bg-warning",
+            NotifyKind::Error => "bg-danger",
         }
     }
 }
@@ -65,13 +65,13 @@ impl AlertKind {
 #[derive(Debug, Clone, PartialEq, Properties)]
 struct Props {
     id: String,
-    kind: AlertKind,
+    kind: NotifyKind,
     message: String,
     delay: Duration,
 }
 
-#[function_component(Alert)]
-fn alert(props: &Props) -> Html {
+#[function_component(Notify)]
+fn notify(props: &Props) -> Html {
     let node_ref = use_node_ref();
 
     let header = {
@@ -86,11 +86,11 @@ fn alert(props: &Props) -> Html {
                     .expect_throw("Failed to cast node to 'Element'");
                 let ok = elem
                     .class_list()
-                    .replace("toast-show", "toast-fade")
-                    .expect_throw("Failed to replace 'toast-show' to 'toast-fade'");
+                    .replace("notify-show", "notify-fade")
+                    .expect_throw("Failed to replace 'notify-show' to 'notify-fade'");
 
                 if ok {
-                    tracing::debug!(id = ?elem.id(), "Fade alert manually");
+                    tracing::debug!(id = ?elem.id(), "Fade notify manually");
                 }
             }
         });
@@ -118,10 +118,10 @@ fn alert(props: &Props) -> Html {
     let progress_bar = {
         let classes = classes!(
             "progress-bar",
-            "progress-bar-toast",
+            "progress-bar-notify",
             props.kind.progress_bar_color_class()
         );
-        let style = format!("--dh-toast-delay: {}ms", props.delay.whole_milliseconds());
+        let style = format!("--dh-notify-delay: {}ms", props.delay.whole_milliseconds());
         html! {
             <div
                 class="progress"
@@ -138,7 +138,7 @@ fn alert(props: &Props) -> Html {
         }
     };
 
-    let toast_classes = classes!("toast", "toast-show", "show", props.kind.color_class());
+    let toast_classes = classes!("toast", "notify-show", "show", props.kind.color_class());
     html! {
         <div
             class={toast_classes}
@@ -155,41 +155,41 @@ fn alert(props: &Props) -> Html {
     }
 }
 
-#[function_component(AlertContainer)]
-pub fn alert_container() -> Html {
-    let alert_man = use_alert_manager();
-    let alert_container = use_node_ref();
+#[function_component(NotifyContainer)]
+pub fn notify_container() -> Html {
+    let notify_manager = use_notify();
+    let container_ref = use_node_ref();
 
-    let alerts_to_display = alert_man
-        .alerts()
+    let notifies_to_display = notify_manager
+        .notifies()
         .iter()
-        .map(|(alert_id, alert_props)| {
+        .map(|(notify_id, notify_props)| {
             html! {
-                <Alert
-                    id={alert_id.clone()}
-                    kind={alert_props.kind}
-                    message={alert_props.message.clone()}
-                    delay={alert_props.delay}
+                <Notify
+                    id={notify_id.clone()}
+                    kind={notify_props.kind}
+                    message={notify_props.message.clone()}
+                    delay={notify_props.delay}
                 />
             }
         })
         .collect::<Html>();
 
     use_effect_with_deps(
-        move |(_, alert_container, alert_man)| {
-            tracing::debug!(alerts = ?alert_man.alerts(), "Update alert container");
+        move |(_, container_ref, notify_manager)| {
+            tracing::debug!(notifies = ?notify_manager.notifies(), "Update notify container");
 
-            let alert_container = alert_container
+            let container_elem = container_ref
                 .cast::<Element>()
-                .expect_throw("Failed to cast alert container to Element");
+                .expect_throw("Failed to cast notify container to 'Element'");
 
-            let mut clear_handles = Vec::with_capacity(alert_man.alerts().len());
+            let mut clear_handles = Vec::with_capacity(notify_manager.notifies().len());
 
-            for (alert_id, alert_props) in alert_man.alerts() {
-                tracing::debug!(?alert_id, ?alert_props, "Show alert");
+            for (notify_id, notify_props) in notify_manager.notifies() {
+                tracing::debug!(?notify_id, ?notify_props, "Show notify");
                 let fade_timeout_delay = {
                     let now = OffsetDateTime::now_utc();
-                    let timeout_delay = alert_props.delay - (now - alert_props.init_date());
+                    let timeout_delay = notify_props.delay - (now - notify_props.init_date());
                     match timeout_delay {
                         d if d.is_negative() => Duration::ZERO,
                         d => d,
@@ -197,30 +197,30 @@ pub fn alert_container() -> Html {
                 };
                 let hide_timeout_delay = fade_timeout_delay + Duration::seconds(1);
 
-                let alert_elem = alert_container
-                    .query_selector(&format!("#{alert_id}"))
-                    .expect_throw("Failed to get alert")
-                    .expect_throw("Alert not found");
+                let notify_elem = container_elem
+                    .query_selector(&format!("#{notify_id}"))
+                    .expect_throw("Failed to get notify")
+                    .expect_throw("Notify not found");
 
                 let fade_timeout_handle =
                     Timeout::new(fade_timeout_delay.whole_milliseconds() as u32, move || {
-                        let ok = alert_elem
+                        let ok = notify_elem
                             .class_list()
-                            .replace("toast-show", "toast-fade")
-                            .expect_throw("Failed to replace 'toast-show' to 'toast-fade'");
+                            .replace("notify-show", "notify-fade")
+                            .expect_throw("Failed to replace 'notify-show' to 'notify-fade'");
 
                         if ok {
-                            tracing::debug!(id = ?alert_elem.id(), "Fade alert");
+                            tracing::debug!(id = ?notify_elem.id(), "Fade notify");
                         }
                     })
                     .forget();
                 let hide_timeout_handle =
                     Timeout::new(hide_timeout_delay.whole_milliseconds() as u32, {
-                        let alert_man = alert_man.clone();
-                        let alert_id = alert_id.clone();
+                        let notify_manager = notify_manager.clone();
+                        let notify_id = notify_id.clone();
                         move || {
-                            tracing::debug!(id = ?alert_id, "Hide alert");
-                            alert_man.hide_alert(&alert_id)
+                            tracing::debug!(id = ?notify_id, "Hide notify");
+                            notify_manager.hide_notify(&notify_id)
                         }
                     })
                     .forget();
@@ -244,7 +244,11 @@ pub fn alert_container() -> Html {
                 }
             }
         },
-        (alert_man.alerts().len(), alert_container.clone(), alert_man),
+        (
+            notify_manager.notifies().len(),
+            container_ref.clone(),
+            notify_manager,
+        ),
     );
 
     html! {
@@ -255,9 +259,9 @@ pub fn alert_container() -> Html {
                    p-3
                    pt-5
                    position-absolute"
-            ref={alert_container}
+            ref={container_ref}
         >
-            {alerts_to_display}
+            {notifies_to_display}
         </div>
     }
 }

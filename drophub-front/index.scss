@@ -18,30 +18,6 @@ body { height: 100%; }
     }
 }
 
-.toast-info {
-    background-color: #def1f7;
-    color: #1c657d;
-    border-color: #c6e6f1;
-}
-
-.toast-success {
-    background-color: #d6f0e0;
-    color: #0d6831;
-    border-color: #c0e7d0;
-}
-
-.toast-warning {
-    background-color: #fbf0da;
-    color: #73510d;
-    border-color: #f9e4be;
-}
-
-.toast-danger {
-    background-color: #f9e1e5;
-    color: #af233a;
-    border-color: #f4c8cf;
-}
-
 .caret-off::before {
     display: none !important;
 }
@@ -50,14 +26,38 @@ body { height: 100%; }
     display: none !important;
 }
 
-.toast-show {
+.notify-info {
+    background-color: #def1f7;
+    color: #1c657d;
+    border-color: #c6e6f1;
+}
+
+.notify-success {
+    background-color: #d6f0e0;
+    color: #0d6831;
+    border-color: #c0e7d0;
+}
+
+.notify-warning {
+    background-color: #fbf0da;
+    color: #73510d;
+    border-color: #f9e4be;
+}
+
+.notify-danger {
+    background-color: #f9e1e5;
+    color: #af233a;
+    border-color: #f4c8cf;
+}
+
+.notify-show {
     -webkit-animation: show 0.4s cubic-bezier(0.455, 0.030, 0.515, 0.955) both,
                        slide-left 0.4s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
             animation: show 0.4s cubic-bezier(0.455, 0.030, 0.515, 0.955) both,
                        slide-left 0.4s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
 }
 
-.toast-fade {
+.notify-fade {
     -webkit-animation: fade 0.4s cubic-bezier(0.455, 0.030, 0.515, 0.955) both,
                        slide-right 0.4s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
             animation: fade 0.4s cubic-bezier(0.455, 0.030, 0.515, 0.955) both,
@@ -140,13 +140,13 @@ body { height: 100%; }
     }
 }
 
-.progress-bar-toast {
-    animation: progress-bar-toast var(--dh-toast-delay) linear forwards;
+.progress-bar-notify {
+    animation: progress-bar-notify var(--dh-notify-delay) linear forwards;
     bottom: 0;
     width: 100%;
 }
 
-@keyframes progress-bar-toast {
+@keyframes progress-bar-notify {
     100% {
         width: 0%;
     }

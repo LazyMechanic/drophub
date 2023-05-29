@@ -7,12 +7,12 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::{
-    hooks::use_alert_manager,
+    hooks::use_notify,
     routes::{
         room::{ActionConnect, Query},
         Route,
     },
-    unwrap_alert_ext::UnwrapAlertExt,
+    unwrap_notify_ext::UnwrapNotifyExt,
     validate::use_form_validation,
 };
 
@@ -25,34 +25,34 @@ struct State {
 #[function_component(ConnectRoom)]
 pub fn connect_room() -> Html {
     let state_handle = use_state(State::default);
-    let alert_man = use_alert_manager();
+    let notify_manager = use_notify();
 
     let form_node_ref = use_form_validation();
 
     let room_id_onchange = Callback::from({
         let state_handle = state_handle.clone();
-        let alert_man = alert_man.clone();
+        let notify_manager = notify_manager.clone();
         move |event: Event| {
             let value = event
                 .target_dyn_into::<HtmlInputElement>()
-                .expect_alert(&alert_man, "Failed to cast to HtmlInputElement")
+                .expect_notify(&notify_manager, "Failed to cast to 'HtmlInputElement'")
                 .value();
 
             let mut state = state_handle.deref().clone();
             let value_int = value
                 .parse::<RoomId>()
-                .expect_alert(&alert_man, "Failed to parse room id");
+                .expect_notify(&notify_manager, "Failed to parse room id");
             state.room_id = Some(value_int);
             state_handle.set(state);
         }
     });
     let invite_password_onchange = Callback::from({
         let state_handle = state_handle.clone();
-        let alert_man = alert_man.clone();
+        let notify_manager = notify_manager.clone();
         move |event: Event| {
             let value = event
                 .target_dyn_into::<HtmlInputElement>()
-                .expect_alert(&alert_man, "Failed to cast to HtmlInputElement")
+                .expect_notify(&notify_manager, "Failed to cast to 'HtmlInputElement'")
                 .value();
 
             let mut state = state_handle.deref().clone();
@@ -64,7 +64,7 @@ pub fn connect_room() -> Html {
     let navigator = use_navigator().unwrap_throw();
     let form_onsubmit = Callback::from({
         let state_handle = state_handle.clone();
-        let alert_man = alert_man.clone();
+        let notify_manager = notify_manager.clone();
         let navigator = navigator.clone();
         let form_node_ref = form_node_ref.clone();
         move |event: SubmitEvent| {
@@ -73,7 +73,7 @@ pub fn connect_room() -> Html {
 
             let elem = form_node_ref
                 .cast::<HtmlFormElement>()
-                .expect_alert(&alert_man, "Failed to cast to HtmlFormElement");
+                .expect_notify(&notify_manager, "Failed to cast to 'HtmlFormElement'");
 
             if elem.check_validity() {
                 navigator
@@ -84,7 +84,7 @@ pub fn connect_room() -> Html {
                             invite_password: state_handle.invite_password.clone().unwrap_throw(),
                         }),
                     )
-                    .unwrap_alert(&alert_man);
+                    .unwrap_notify(&notify_manager);
             }
         }
     });
