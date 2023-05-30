@@ -2,7 +2,6 @@ use wasm_bindgen::UnwrapThrowExt;
 use yew::{platform::spawn_local, prelude::*};
 use yew_hooks::use_effect_once;
 use yew_router::prelude::*;
-use yewdux::prelude::*;
 
 use crate::{
     components::{Footer, Header, NotifyContainer},
@@ -14,6 +13,7 @@ use crate::{
 
 #[function_component(App)]
 pub fn app() -> Html {
+    // TODO: fullscreen placeholder with error
     let cfg = Config::from_env().unwrap_throw();
     let (rpc_tx, rpc_rx) = rpc::channel();
     spawn_local(rpc::run(cfg, rpc_rx));

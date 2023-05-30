@@ -1,9 +1,7 @@
 mod file_card;
 mod file_upload;
 
-use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
-use yewdux::prelude::*;
 
 use self::{
     file_card::{FileCard, FileKind},

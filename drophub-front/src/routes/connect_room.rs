@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 use drophub::{InvitePassword, RoomId};
-use wasm_bindgen::UnwrapThrowExt;
 use web_sys::{HtmlFormElement, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::*;
@@ -26,6 +25,7 @@ struct State {
 pub fn connect_room() -> Html {
     let state_handle = use_state(State::default);
     let notify_manager = use_notify();
+    let navigator = use_navigator().expect_notify(&notify_manager, "Failed to get navigator");
 
     let form_node_ref = use_form_validation();
 
@@ -46,6 +46,7 @@ pub fn connect_room() -> Html {
             state_handle.set(state);
         }
     });
+
     let invite_password_onchange = Callback::from({
         let state_handle = state_handle.clone();
         let notify_manager = notify_manager.clone();
@@ -61,7 +62,6 @@ pub fn connect_room() -> Html {
         }
     });
 
-    let navigator = use_navigator().unwrap_throw();
     let form_onsubmit = Callback::from({
         let state_handle = state_handle.clone();
         let notify_manager = notify_manager.clone();
@@ -80,8 +80,11 @@ pub fn connect_room() -> Html {
                     .push_with_query(
                         &Route::Room,
                         &Query::Connect(ActionConnect {
-                            room_id: state_handle.room_id.unwrap_throw(),
-                            invite_password: state_handle.invite_password.clone().unwrap_throw(),
+                            room_id: state_handle.room_id.unwrap_notify(&notify_manager),
+                            invite_password: state_handle
+                                .invite_password
+                                .clone()
+                                .unwrap_notify(&notify_manager),
                         }),
                     )
                     .unwrap_notify(&notify_manager);

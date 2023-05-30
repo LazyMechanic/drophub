@@ -1,4 +1,3 @@
-use drophub::FileId;
 use yew::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Properties)]

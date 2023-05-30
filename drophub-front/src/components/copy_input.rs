@@ -1,8 +1,9 @@
 use gloo::timers::callback::Timeout;
-use wasm_bindgen::UnwrapThrowExt;
-use web_sys::{Element, HtmlButtonElement, HtmlElement, HtmlInputElement};
+use web_sys::{Element, HtmlInputElement};
 use yew::prelude::*;
 use yew_hooks::prelude::*;
+
+use crate::{hooks::use_notify, unwrap_notify_ext::UnwrapNotifyExt};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
@@ -16,32 +17,45 @@ pub struct Props {
 
 #[function_component(CopyInput)]
 pub fn copy_input(props: &Props) -> Html {
+    let notify_manager = use_notify();
+    let clipboard = use_clipboard();
+
     let input_ref = use_node_ref();
     let icon_ref = use_node_ref();
 
-    let clipboard = use_clipboard();
     let copy_onclick = Callback::from({
+        let notify_manager = notify_manager.clone();
         let input_ref = input_ref.clone();
         let icon_ref = icon_ref.clone();
         move |e: MouseEvent| {
             e.prevent_default();
             let icon = icon_ref
                 .cast::<Element>()
-                .expect_throw("failed to cast icon_ref to Element");
-            let input = input_ref
-                .cast::<HtmlInputElement>()
-                .expect_throw("failed to cast input_ref to HtmlInputElement");
+                .expect_notify(&notify_manager, "Failed to cast icon_ref to 'Element'");
+            let input = input_ref.cast::<HtmlInputElement>().expect_notify(
+                &notify_manager,
+                "Failed to cast input_ref to 'HtmlInputElement'",
+            );
 
             icon.class_list()
                 .replace("bi-clipboard", "bi-check2")
-                .expect_throw("failed to replace class 'bi-clipboard' to 'is-check2'");
+                .expect_notify(
+                    &notify_manager,
+                    "Failed to replace class 'bi-clipboard' to 'is-check2'",
+                );
 
             clipboard.write_text(input.value());
 
-            Timeout::new(1500, move || {
-                icon.class_list()
-                    .replace("bi-check2", "bi-clipboard")
-                    .expect_throw("failed to replace class 'bi-check2' to 'is-clipboard'");
+            Timeout::new(1500, {
+                let notify_manager = notify_manager.clone();
+                move || {
+                    icon.class_list()
+                        .replace("bi-check2", "bi-clipboard")
+                        .expect_notify(
+                            &notify_manager,
+                            "Failed to replace class 'bi-check2' to 'is-clipboard'",
+                        );
+                }
             })
             .forget();
         }

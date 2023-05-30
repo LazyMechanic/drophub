@@ -1,10 +1,8 @@
-use gloo::timers::callback::{Interval, Timeout};
+use gloo::timers::callback::Timeout;
 use time::{Duration, OffsetDateTime};
-use wasm_bindgen::{JsValue, UnwrapThrowExt};
+use wasm_bindgen::UnwrapThrowExt;
 use web_sys::Element;
 use yew::prelude::*;
-use yew_hooks::prelude::*;
-use yewdux::prelude::*;
 
 use crate::hooks::use_notify;
 

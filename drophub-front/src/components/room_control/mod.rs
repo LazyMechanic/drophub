@@ -4,9 +4,7 @@ mod invite_modal;
 mod room_info;
 mod room_info_modal;
 
-use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
-use yewdux::prelude::*;
 
 use self::{
     client_list::ClientList, invite_list::InviteList, invite_modal::InviteModal,

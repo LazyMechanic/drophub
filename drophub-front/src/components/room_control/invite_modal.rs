@@ -1,11 +1,10 @@
 use drophub::{InvitePassword, RoomId};
-use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
-use yewdux::prelude::*;
 
 use crate::{
     components::{CopyInput, QrCode},
-    hooks::use_room_store_value,
+    hooks::{use_notify, use_room_store_value},
+    unwrap_notify_ext::UnwrapNotifyExt,
 };
 
 #[derive(Debug, Clone, PartialEq, Properties)]
@@ -23,8 +22,11 @@ struct State {
 
 #[function_component(InviteModal)]
 pub fn invite_modal(props: &Props) -> Html {
+    let notify_manager = use_notify();
     let store = use_room_store_value();
+
     let state_handle = use_state_eq({
+        let notify_manager = notify_manager.clone();
         let store = store.clone();
         move || {
             let room_id = store.room.info.room_id;
@@ -33,8 +35,11 @@ pub fn invite_modal(props: &Props) -> Html {
                 .clone()
                 .unwrap_or_else(|| "placeholder".to_owned());
             let invite_link = {
-                let win = web_sys::window().expect_throw("failed to get Window");
-                let base_url = win.location().origin().unwrap_throw();
+                let win = web_sys::window().expect_notify(&notify_manager, "Failed to get Window");
+                let base_url = win
+                    .location()
+                    .origin()
+                    .expect_notify(&notify_manager, "Failed to get origin");
                 format_invite_link(&base_url, room_id, &invite_password)
             };
 

@@ -1,6 +1,5 @@
 use drophub::InvitePassword;
 use yew::prelude::*;
-use yewdux::prelude::*;
 
 use crate::{
     components::{room_control::MenuState, Placeholder},

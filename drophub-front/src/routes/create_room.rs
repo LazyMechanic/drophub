@@ -1,11 +1,9 @@
 use std::ops::Deref;
 
-use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlFormElement, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::*;
-use yewdux::prelude::*;
 
 use crate::{
     hooks::use_notify,

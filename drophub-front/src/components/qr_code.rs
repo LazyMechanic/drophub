@@ -1,6 +1,7 @@
 use qrcode::{render::svg, QrCode as QrCodeLib};
-use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
+
+use crate::{hooks::use_notify, unwrap_notify_ext::UnwrapNotifyExt};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props<T>
@@ -20,10 +21,14 @@ pub fn qrcode<T>(props: &Props<T>) -> Html
 where
     T: PartialEq + AsRef<[u8]>,
 {
+    let notify_manager = use_notify();
+
     let qr_handle = use_state({
         let props = props.clone();
+        let notify_manager = notify_manager.clone();
         move || {
-            let code = QrCodeLib::new(&props.value).expect_throw("failed to generate QR code");
+            let code = QrCodeLib::new(&props.value)
+                .expect_notify(&notify_manager, "Failed to generate QR code");
             let image = code
                 .render::<svg::Color>()
                 .min_dimensions(props.size, props.size)
