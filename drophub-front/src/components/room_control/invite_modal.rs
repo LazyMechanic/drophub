@@ -3,7 +3,7 @@ use yew::prelude::*;
 
 use crate::{
     components::{CopyInput, QrCode},
-    hooks::{use_notify, use_room_store_value},
+    hooks::use_notify,
     unwrap_notify_ext::UnwrapNotifyExt,
 };
 
@@ -11,29 +11,25 @@ use crate::{
 pub struct Props {
     #[prop_or_default]
     pub placeholder: bool,
+    pub room_id: RoomId,
+    pub selected_invite: InvitePassword,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 struct State {
-    room_id: RoomId,
-    invite_password: InvitePassword,
     invite_link: String,
 }
 
 #[function_component(InviteModal)]
 pub fn invite_modal(props: &Props) -> Html {
     let notify_manager = use_notify();
-    let store = use_room_store_value();
 
     let state_handle = use_state_eq({
         let notify_manager = notify_manager.clone();
-        let store = store.clone();
+        let props = props.clone();
         move || {
-            let room_id = store.room.info.room_id;
-            let invite_password = store
-                .selected_invite
-                .clone()
-                .unwrap_or_else(|| "placeholder".to_owned());
+            let room_id = props.room_id;
+            let invite_password = props.selected_invite;
             let invite_link = {
                 let win = web_sys::window().expect_notify(&notify_manager, "Failed to get Window");
                 let base_url = win
@@ -43,11 +39,7 @@ pub fn invite_modal(props: &Props) -> Html {
                 format_invite_link(&base_url, room_id, &invite_password)
             };
 
-            State {
-                room_id,
-                invite_password,
-                invite_link,
-            }
+            State { invite_link }
         }
     });
 
@@ -98,11 +90,11 @@ pub fn invite_modal(props: &Props) -> Html {
                                 >
                                     <div>
                                         <span>{"Room ID"}</span>
-                                        <CopyInput content={state_handle.room_id.to_string()} />
+                                        <CopyInput content={props.room_id.to_string()} />
                                     </div>
                                     <div>
                                         <span>{"Invite password"}</span>
-                                        <CopyInput content={state_handle.invite_password.clone()} />
+                                        <CopyInput content={props.selected_invite.clone()} />
                                     </div>
                                 </div>
                             </div>

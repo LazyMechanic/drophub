@@ -1,23 +1,18 @@
 use drophub::RoomId;
 use yew::prelude::*;
 
-use crate::{
-    components::{room_control::MenuState, Placeholder},
-    hooks::use_room_store_value,
-};
+use crate::components::{room_control::MenuState, Placeholder};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
     pub placeholder: bool,
     pub menu_state: MenuState,
+    pub room_id: RoomId,
 }
 
 #[function_component(RoomInfo)]
 pub fn room_info(props: &Props) -> Html {
-    let store = use_room_store_value();
-    let room = &store.room;
-
     let header = match props.menu_state {
         MenuState::Expanded => html! {
             <div class="fw-bold">
@@ -25,7 +20,7 @@ pub fn room_info(props: &Props) -> Html {
                 {"Room "}
                 <Placeholder<RoomId>
                     enabled={props.placeholder}
-                    content={room.info.room_id}
+                    content={props.room_id}
                 />
             </div>
         },

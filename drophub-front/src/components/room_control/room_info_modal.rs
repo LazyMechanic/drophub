@@ -1,33 +1,17 @@
 use drophub::{ClientId, RoomId, RoomOptions};
 use yew::prelude::*;
 
-use crate::hooks::use_room_store_value;
-
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
     pub placeholder: bool,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct State {
     pub room_id: RoomId,
-    pub host_id: ClientId,
     pub room_opts: RoomOptions,
+    pub host: ClientId,
 }
 
 #[function_component(RoomInfoModal)]
 pub fn room_info_modal(props: &Props) -> Html {
-    let store = use_room_store_value();
-    let state_handle = use_state_eq({
-        let store = store.clone();
-        move || State {
-            room_id: store.room.info.room_id,
-            host_id: store.room.info.host_id,
-            room_opts: store.room.info.options.clone(),
-        }
-    });
-
     html! {
         <div
             class="modal
@@ -54,15 +38,15 @@ pub fn room_info_modal(props: &Props) -> Html {
                             <tbody>
                                 <tr>
                                     <th scope="row">{"Room ID"}</th>
-                                    <td>{state_handle.room_id}</td>
+                                    <td>{props.room_id}</td>
                                 </tr>
                                 <tr>
                                     <th scope="row">{"Host ID"}</th>
-                                    <td>{state_handle.host_id}</td>
+                                    <td>{props.host}</td>
                                 </tr>
                                 <tr>
                                     <th scope="row">{"Encryption"}</th>
-                                    <td>{state_handle.room_opts.encryption}</td>
+                                    <td>{props.room_opts.encryption}</td>
                                 </tr>
                             </tbody>
                         </table>

@@ -1,44 +1,28 @@
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 use drophub::{ClientId, FileMeta, InvitePassword, JwtEncoded, RoomInfo, RoomOptions};
 use lazy_static::lazy_static;
 use uuid::Uuid;
-use yew::prelude::*;
-use yewdux::prelude::*;
 
-#[hook]
-pub fn use_room_store() -> (Rc<RoomStore>, Dispatch<RoomStore>) {
-    use_store::<RoomStore>()
-}
+use crate::routes::room::query::Query;
 
-#[hook]
-pub fn use_room_store_value() -> Rc<RoomStore> {
-    use_store_value::<RoomStore>()
-}
-
-#[derive(Debug, Clone, PartialEq, Store)]
-pub struct RoomStore {
-    pub room: RoomState,
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct State {
+    pub query: Option<Query>,
+    pub client: ClientInfo,
+    pub room: RoomInfo,
     pub selected_invite: Option<InvitePassword>,
+    pub loading: bool,
 }
 
-impl Default for RoomStore {
+impl Default for State {
     fn default() -> Self {
-        Self {
-            room: RoomState::placeholder_host().clone(),
-            selected_invite: None,
-        }
+        Self::placeholder_host().clone()
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct RoomState {
-    pub client: Client,
-    pub info: RoomInfo,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Client {
+pub struct ClientInfo {
     pub jwt: JwtEncoded,
     pub id: ClientId,
     pub role: ClientRole,
@@ -50,7 +34,7 @@ pub enum ClientRole {
     Guest,
 }
 
-impl RoomState {
+impl State {
     pub fn placeholder(role: ClientRole) -> &'static Self {
         match role {
             ClientRole::Host => Self::placeholder_host(),
@@ -60,10 +44,11 @@ impl RoomState {
 
     pub fn placeholder_host() -> &'static Self {
         lazy_static! {
-            static ref ROOM_PLACEHOLDER_HOST: RoomState = {
+            static ref PLACEHOLDER_HOST: State = {
                 let client_id = Uuid::new_v4();
-                RoomState {
-                    client: Client {
+                State {
+                    query: None,
+                    client: ClientInfo {
                         jwt: JwtEncoded {
                             access_token: "".into(),
                             refresh_token: "".into(),
@@ -71,7 +56,7 @@ impl RoomState {
                         id: client_id,
                         role: ClientRole::Host,
                     },
-                    info: RoomInfo {
+                    room: RoomInfo {
                         room_id: 123456,
                         host_id: client_id,
                         files: {
@@ -130,20 +115,23 @@ impl RoomState {
                             capacity: 10,
                         },
                     },
+                    selected_invite: None,
+                    loading: true,
                 }
             };
         }
 
-        &*ROOM_PLACEHOLDER_HOST
+        &*PLACEHOLDER_HOST
     }
 
     pub fn placeholder_guest() -> &'static Self {
         lazy_static! {
-            static ref ROOM_PLACEHOLDER_GUEST: RoomState = {
+            static ref PLACEHOLDER_GUEST: State = {
                 let client_id = Uuid::new_v4();
                 let host_id = Uuid::new_v4();
-                RoomState {
-                    client: Client {
+                State {
+                    query: None,
+                    client: ClientInfo {
                         jwt: JwtEncoded {
                             access_token: "".into(),
                             refresh_token: "".into(),
@@ -151,7 +139,7 @@ impl RoomState {
                         id: client_id,
                         role: ClientRole::Host,
                     },
-                    info: RoomInfo {
+                    room: RoomInfo {
                         room_id: 123456,
                         host_id: host_id,
                         files: {
@@ -210,10 +198,12 @@ impl RoomState {
                             capacity: 10,
                         },
                     },
+                    selected_invite: None,
+                    loading: true,
                 }
             };
         }
 
-        &*ROOM_PLACEHOLDER_GUEST
+        &*PLACEHOLDER_GUEST
     }
 }

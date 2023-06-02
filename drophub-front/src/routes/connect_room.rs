@@ -8,7 +8,7 @@ use yew_router::prelude::*;
 use crate::{
     hooks::use_notify,
     routes::{
-        room::{ActionConnect, Query},
+        room::query::{ActionConnect, Query},
         Route,
     },
     unwrap_notify_ext::UnwrapNotifyExt,

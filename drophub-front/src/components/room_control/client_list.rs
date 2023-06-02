@@ -1,23 +1,20 @@
 use drophub::ClientId;
 use yew::prelude::*;
 
-use crate::{
-    components::{room_control::MenuState, Placeholder},
-    hooks::use_room_store_value,
-};
+use crate::components::{room_control::MenuState, Placeholder};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
     pub placeholder: bool,
     pub menu_state: MenuState,
+    pub clients: Vec<ClientId>,
+    pub host: ClientId,
+    pub cur_client: ClientId,
 }
 
 #[function_component(ClientList)]
 pub fn client_list(props: &Props) -> Html {
-    let store = use_room_store_value();
-    let room = &store.room;
-
     let header = match props.menu_state {
         MenuState::Expanded => html! {
             <div class="fw-bold">
@@ -31,7 +28,7 @@ pub fn client_list(props: &Props) -> Html {
     };
 
     let clients = {
-        room.info
+        props
             .clients
             .iter()
             .map(|client_id| {
@@ -41,7 +38,7 @@ pub fn client_list(props: &Props) -> Html {
                     "dropdown-toggle",
                     "caret-off",
                     "font-monospace",
-                    if client_id == &room.client.id {
+                    if *client_id == props.host {
                         "btn-primary"
                     } else {
                         "btn-light"
@@ -49,18 +46,18 @@ pub fn client_list(props: &Props) -> Html {
                 );
                 let kick_classes = classes!(
                     "dropdown-item",
-                    if client_id == &room.client.id {
-                        Some("disabled")
+                    if props.cur_client == props.host && client_id != &props.cur_client {
+                        None // enabled
                     } else {
-                        None
+                        Some("disabled")
                     }
                 );
 
                 let btn_content = match props.menu_state {
                     MenuState::Expanded => html! {
-                        <Placeholder<ClientId>
+                        <Placeholder<String>
                             enabled={props.placeholder}
-                            content={client_id.clone()}
+                            content={format_short_client_id(client_id.clone())}
                         />
                     },
                     MenuState::Minimized => html! {
@@ -82,6 +79,7 @@ pub fn client_list(props: &Props) -> Html {
                             {btn_content}
                         </button>
                         <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header">{client_id}</h6></li>
                             <li>
                                 <button
                                     class={kick_classes}
@@ -109,4 +107,13 @@ pub fn client_list(props: &Props) -> Html {
             </div>
         </div>
     }
+}
+
+fn format_short_client_id(client_id: ClientId) -> String {
+    let client_id = client_id.to_string();
+    format!(
+        "{}...{}",
+        &client_id[0..8],
+        &client_id[client_id.len() - 12..client_id.len()]
+    )
 }
