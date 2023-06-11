@@ -5,8 +5,8 @@ use jsonrpsee::core::client::Subscription;
 use yew::platform::spawn_local;
 
 pub use self::channel::{
-    channel, RpcRequestTx, RpcSingleRequest, RpcSingleResponse, RpcSubscribeRequest,
-    RpcSubscribeResponse, RpcSubscribeResponseRx,
+    channel, RoomCredentials, RoomMsg, RpcRequestTx, RpcSingleRequest, RpcSingleResponse,
+    RpcSubscribeRequest, RpcSubscribeResponse, RpcSubscribeResponseRx,
 };
 use crate::{
     config::Config,
@@ -34,9 +34,13 @@ async fn handle_req_msg(
     match req_msg {
         RpcRequestMsg::Single(req, resp_tx) => match req {},
         RpcRequestMsg::Subscribe(req, resp_tx) => match req {
-            RpcSubscribeRequest::CreateRoom(opt) => {
-                let sub = rpc_client.create(opt).await?;
+            RpcSubscribeRequest::CreateRoom(opts) => {
+                let sub = rpc_client.create(opts).await?;
                 spawn_local(create_room(sub, resp_tx));
+            }
+            RpcSubscribeRequest::ConnectRoom(creds) => {
+                let sub = rpc_client.connect(creds.id, creds.password).await?;
+                spawn_local(connect_room(sub, resp_tx));
             }
         },
     }
@@ -45,3 +49,5 @@ async fn handle_req_msg(
 }
 
 async fn create_room(sub: Subscription<ClientEvent>, resp_tx: RpcSubscribeResponseTx) {}
+
+async fn connect_room(sub: Subscription<ClientEvent>, resp_tx: RpcSubscribeResponseTx) {}

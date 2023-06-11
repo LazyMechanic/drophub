@@ -248,7 +248,7 @@ impl RoomRpcServer for RoomRpc {
         &self,
         subscription_sink: PendingSubscriptionSink,
         room_id: RoomId,
-        invite_id: InvitePassword,
+        invite_password: InvitePassword,
     ) -> SubscriptionResult {
         let (upload_tx, mut upload_rx) = mpsc::unbounded_channel();
         let client = Client::new(ClientRole::Guest, upload_tx);
@@ -281,7 +281,7 @@ impl RoomRpcServer for RoomRpc {
 
             let mut room_rx = {
                 let mut room = self.get_room_mut(room_id)?;
-                let room_rx = room.add_client(client, invite_id)?;
+                let room_rx = room.add_client(client, invite_password)?;
                 tracing::info!(?client_id, "Client connected to room");
                 room.broadcast_info()?;
 

@@ -11,6 +11,7 @@ pub struct Props {
     pub invites: Vec<InvitePassword>,
     pub room_cap: usize,
     pub room_len: usize,
+    pub invite_onclick: Callback<MouseEvent, ()>,
 }
 
 #[function_component(InviteList)]
@@ -57,7 +58,7 @@ pub fn invite_list(props: &Props) -> Html {
             .invites
             .iter()
             .map(|invite_password| {
-                let onclick = Callback::from(|e: MouseEvent| { /* TODO */ });
+                let onclick = props.invite_onclick.clone();
                 let btn_content = match props.menu_state {
                     MenuState::Expanded => html! {
                         <Placeholder<InvitePassword>

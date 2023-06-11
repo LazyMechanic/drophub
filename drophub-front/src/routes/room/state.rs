@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use drophub::{ClientId, FileMeta, InvitePassword, JwtEncoded, RoomInfo, RoomOptions};
+use drophub::{ClientId, FileMeta, JwtEncoded, RoomInfo, RoomOptions};
 use lazy_static::lazy_static;
 use uuid::Uuid;
 
@@ -8,30 +8,16 @@ use crate::routes::room::query::Query;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct State {
-    pub query: Option<Query>,
     pub client: ClientInfo,
     pub room: RoomInfo,
-    pub selected_invite: Option<InvitePassword>,
     pub loading: bool,
+    pub query: Option<Query>,
 }
 
 impl Default for State {
     fn default() -> Self {
         Self::placeholder_host().clone()
     }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ClientInfo {
-    pub jwt: JwtEncoded,
-    pub id: ClientId,
-    pub role: ClientRole,
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum ClientRole {
-    Host,
-    Guest,
 }
 
 impl State {
@@ -47,7 +33,6 @@ impl State {
             static ref PLACEHOLDER_HOST: State = {
                 let client_id = Uuid::new_v4();
                 State {
-                    query: None,
                     client: ClientInfo {
                         jwt: JwtEncoded {
                             access_token: "".into(),
@@ -115,8 +100,8 @@ impl State {
                             capacity: 10,
                         },
                     },
-                    selected_invite: None,
                     loading: true,
+                    query: None,
                 }
             };
         }
@@ -130,7 +115,6 @@ impl State {
                 let client_id = Uuid::new_v4();
                 let host_id = Uuid::new_v4();
                 State {
-                    query: None,
                     client: ClientInfo {
                         jwt: JwtEncoded {
                             access_token: "".into(),
@@ -198,12 +182,25 @@ impl State {
                             capacity: 10,
                         },
                     },
-                    selected_invite: None,
                     loading: true,
+                    query: None,
                 }
             };
         }
 
         &*PLACEHOLDER_GUEST
     }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClientInfo {
+    pub jwt: JwtEncoded,
+    pub id: ClientId,
+    pub role: ClientRole,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ClientRole {
+    Host,
+    Guest,
 }

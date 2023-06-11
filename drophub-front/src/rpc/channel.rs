@@ -1,4 +1,4 @@
-use drophub::{JwtEncoded, RoomInfo, RoomOptions, UploadRequest};
+use drophub::{ClientId, InvitePassword, JwtEncoded, RoomId, RoomInfo, RoomOptions, UploadRequest};
 use futures::StreamExt;
 use yew::platform::pinned::{mpsc, oneshot};
 
@@ -99,6 +99,13 @@ impl RpcSingleResponseRx {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RpcSubscribeRequest {
     CreateRoom(RoomOptions),
+    ConnectRoom(RoomCredentials),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct RoomCredentials {
+    pub id: RoomId,
+    pub password: InvitePassword,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -108,7 +115,7 @@ pub enum RpcSubscribeResponse {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RoomMsg {
-    Init(JwtEncoded),
+    Init(JwtEncoded, ClientId),
     RoomInfo(RoomInfo),
     UploadRequest(UploadRequest),
 }

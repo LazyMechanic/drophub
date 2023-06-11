@@ -66,7 +66,8 @@ pub trait RoomRpc {
 
     /// Connects to existed room.
     #[subscription(name = "sub_connect", unsubscribe = "unsub_connect", item = ClientEvent)]
-    async fn connect(&self, room_id: RoomId, invite_id: InvitePassword) -> SubscriptionResult;
+    async fn connect(&self, room_id: RoomId, invite_password: InvitePassword)
+        -> SubscriptionResult;
 
     /// Subscribes to receive the file block by block.
     #[subscription(name = "sub_download", unsubscribe = "unsub_download", item = FileData)]
