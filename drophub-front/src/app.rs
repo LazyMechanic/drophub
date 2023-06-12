@@ -31,15 +31,15 @@ pub fn app() -> Html {
     let main_content = {
         html! {
             <>
-                if connect_handle.loading {
-                    <FullScreenLoading />
-                }
-                if let Some(err) = &connect_handle.error {
-                    <FullScreenNotify<String> content={format!("Failed to load page: {err}")} />
-                }
-                if let Some(_) = &connect_handle.data {
+                // if connect_handle.loading {
+                //     <FullScreenLoading />
+                // }
+                // if let Some(err) = &connect_handle.error {
+                //     <FullScreenNotify<String> content={format!("Failed to load page: {err}")} />
+                // }
+                // if let Some(_) = &connect_handle.data {
                     <Switch<Route> render={switch} />
-                }
+                // }
             </>
         }
     };
