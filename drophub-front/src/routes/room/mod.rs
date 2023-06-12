@@ -91,6 +91,8 @@ pub fn room() -> Html {
 
     html! {
         <div class="container-fluid
+                    d-flex
+                    flex-row
                     h-100
                     p-3
                     gap-3
@@ -111,7 +113,10 @@ pub fn room() -> Html {
                 invites={state_handle.room.invites.clone()}
                 capacity={state_handle.room.options.capacity}
             />
-            <RoomMediaShare />
+            <RoomMediaShare
+                loading={state_handle.loading}
+                medias={state_handle.room.files.clone()}
+            />
         </div>
     }
 }
