@@ -1,0 +1,25 @@
+/* TODO: create custom color theme */
+
+@import "../node_modules/bootstrap/scss/bootstrap";
+@import "notify";
+@import "utils";
+
+html { height: 100%; }
+body { height: 100%; }
+
+#dhBtnConnectRoom,
+#dhBtnCreateRoom {
+    height: 2.7em;
+    width: 100%;
+}
+
+@include media-breakpoint-up(lg) {
+    #dhBtnConnectRoom,
+    #dhBtnCreateRoom {
+        width: 10em;
+    }
+}
+
+
+
+

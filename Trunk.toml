@@ -1,6 +1,6 @@
 [build]
 # The index HTML file to drive the bundling process.
-target = "./drophub-front/index.html"
+target = "./drophub-front/static/index.html"
 # The output dir for all final assets.
 dist = "./dist"
 

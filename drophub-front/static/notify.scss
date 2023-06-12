@@ -1,31 +1,3 @@
-/* TODO: create custom color theme */
-
-@import "./node_modules/bootstrap/scss/bootstrap";
-
-html { height: 100%; }
-body { height: 100%; }
-
-#dhBtnConnectRoom,
-#dhBtnCreateRoom {
-    height: 2.7em;
-    width: 100%;
-}
-
-@include media-breakpoint-up(lg) {
-    #dhBtnConnectRoom,
-    #dhBtnCreateRoom {
-        width: 10em;
-    }
-}
-
-.caret-off::before {
-    display: none !important;
-}
-
-.caret-off::after {
-    display: none !important;
-}
-
 .notify-info {
     background-color: #def1f7;
     color: #1c657d;

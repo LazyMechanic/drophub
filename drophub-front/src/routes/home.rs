@@ -7,6 +7,8 @@ use crate::routes::Route;
 pub fn home() -> Html {
     let navigator = use_navigator().unwrap();
 
+    let connect_room_btn = {};
+
     let connect_room_btn = {
         let navigator = navigator.clone();
         let onclick = Callback::from(move |_| navigator.push(&Route::ConnectRoom));
