@@ -32,9 +32,7 @@ jobs:
         override: true
         profile: minimal
     - name: Build (drophub-front)
-      run: |
-        npm install --prefix ./drophub-front
-        trunk build -d ./dist ./drophub-front/index.html
+      run: trunk build
           
 
     - name: Install rust toolchain
