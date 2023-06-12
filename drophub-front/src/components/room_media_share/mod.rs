@@ -40,7 +40,7 @@ pub fn room_media_share(props: &Props) -> Html {
 
     html! {
         <div
-            class="container
+            class="container-fluid
                    bg-body
                    border
                    border-0

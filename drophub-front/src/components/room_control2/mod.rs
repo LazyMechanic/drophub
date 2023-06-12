@@ -7,10 +7,13 @@ mod room_info_modal;
 use std::collections::HashMap;
 
 use drophub::{ClientId, InvitePassword, RoomId};
+use web_sys::Element;
 use yew::prelude::*;
 
 use self::{client_list::ClientList, invite_list::InviteList, room_info::RoomInfo};
-use crate::routes::room::state::ClientRole;
+use crate::{
+    hooks::use_notify, routes::room::state::ClientRole, unwrap_notify_ext::UnwrapNotifyExt,
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Properties)]
 pub struct Props {
@@ -25,6 +28,43 @@ pub struct Props {
 
 #[function_component(RoomControl)]
 pub fn room_control(props: &Props) -> Html {
+    let notify_manager = use_notify();
+    let container_node_ref = use_node_ref();
+
+    let min_exp_btn = {
+        let onclick = Callback::from({
+            let container_node_ref = container_node_ref.clone();
+            move |_| {
+                let elem = container_node_ref
+                    .cast::<Element>()
+                    .expect_notify(&notify_manager, "Failed to cast 'NodeRef' to 'Element'");
+
+                elem.class_list()
+                    .toggle("dh-room-control-minimized")
+                    .expect_notify(
+                        &notify_manager,
+                        "Failed to toggle 'dh-room-control-minimized' class",
+                    );
+            }
+        });
+
+        html! {
+            <button
+                class="btn
+                       btn-outline-secondary
+                       mt-auto
+                       ms-auto"
+                type="button"
+                {onclick}
+            >
+                <i class="bi
+                          bi-arrow-left-right"
+                >
+                </i>
+            </button>
+        }
+    };
+
     html! {
         <div
             class="d-flex
@@ -38,6 +78,7 @@ pub fn room_control(props: &Props) -> Html {
                    p-3
                    gap-2
                    dh-room-control"
+            ref={container_node_ref}
         >
             <RoomInfo
                 loading={props.loading}
@@ -55,6 +96,7 @@ pub fn room_control(props: &Props) -> Html {
                 capacity={props.capacity}
                 clients_count={props.clients.len()}
             />
+            {min_exp_btn}
         </div>
     }
 }
