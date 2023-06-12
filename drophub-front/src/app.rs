@@ -1,28 +1,48 @@
-use wasm_bindgen::UnwrapThrowExt;
-use yew::{platform::spawn_local, prelude::*};
-use yew_hooks::use_effect_once;
+use std::{pin::pin, rc::Rc, time::Duration};
+
+use futures::{FutureExt, StreamExt};
+use yew::{
+    platform::{
+        spawn_local,
+        time::{interval, sleep},
+    },
+    prelude::*,
+};
+use yew_hooks::{use_async_with_options, UseAsyncOptions};
 use yew_router::prelude::*;
+use yewdux::prelude::*;
 
 use crate::{
-    components::{Footer, Header, NotifyContainer},
+    components::{Footer, FullScreenLoading, FullScreenNotify, Header, NotifyContainer},
     config::Config,
-    hooks,
+    error::{Error, ShareError},
+    hooks::{use_rpc_storage, RpcStorage},
     routes::{switch, Route},
-    rpc,
 };
 
 #[function_component(App)]
 pub fn app() -> Html {
-    // TODO: fullscreen placeholder with error
-    let cfg = Config::from_env().unwrap_throw();
-    let (rpc_tx, rpc_rx) = rpc::channel();
-    spawn_local(rpc::run(cfg, rpc_rx));
+    let (rpc, rpc_dispatch) = use_rpc_storage();
+    let connect_handle = use_async_with_options(
+        connect_to_server(rpc_dispatch),
+        UseAsyncOptions::enable_auto(),
+    );
 
-    // Init store
-    use_effect_once(move || {
-        hooks::init_rpc(rpc_tx);
-        || {}
-    });
+    let main_content = {
+        html! {
+            <>
+                if connect_handle.loading {
+                    <FullScreenLoading />
+                }
+                if let Some(err) = &connect_handle.error {
+                    <FullScreenNotify<String> content={format!("Failed to load page: {err}")} />
+                }
+                if let Some(_) = &connect_handle.data {
+                    <Switch<Route> render={switch} />
+                }
+            </>
+        }
+    };
 
     html! {
         <BrowserRouter>
@@ -33,11 +53,38 @@ pub fn app() -> Html {
             >
                 <header><Header /></header>
                 <main class="flex-grow-1">
-                    <Switch<Route> render={switch} />
+                    {main_content}
                     <NotifyContainer />
                 </main>
                 <footer><Footer /></footer>
             </div>
         </BrowserRouter>
     }
+}
+
+async fn connect_to_server(rpc_dispatch: Dispatch<RpcStorage>) -> Result<(), ShareError> {
+    let cfg = Config::from_env()?;
+    let rpc_client: jsonrpsee::core::client::Client =
+        jsonrpsee::wasm_client::WasmClientBuilder::default()
+            .build(cfg.api_server_url)
+            .await
+            .map_err(Error::from)?;
+
+    let mut connect_timeout = pin!(sleep(cfg.init_timeout).fuse());
+    let mut interval = pin!(interval(Duration::from_millis(250)).fuse());
+    loop {
+        futures::select_biased! {
+            _ = rpc_client.on_disconnect().fuse() => return Err(Error::Other(anyhow::anyhow!("Disconnect from API server")).into()),
+            _ = &mut connect_timeout => return Err(Error::Other(anyhow::anyhow!("Connection to API server timed out")).into()),
+            _ = interval.next() => {},
+        }
+
+        if rpc_client.is_connected() {
+            break;
+        }
+    }
+
+    rpc_dispatch.reduce_mut(|s| s.rpc_client = Some(Rc::new(rpc_client)));
+
+    Ok(())
 }

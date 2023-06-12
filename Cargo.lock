@@ -496,6 +496,7 @@ dependencies = [
  "drophub",
  "futures",
  "gloo",
+ "humantime",
  "jsonrpsee",
  "lazy_static",
  "qrcode",

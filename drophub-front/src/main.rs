@@ -4,7 +4,6 @@ mod config;
 mod error;
 mod hooks;
 mod routes;
-mod rpc;
 mod unwrap_notify_ext;
 mod validate;
 

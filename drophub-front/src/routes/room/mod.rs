@@ -1,9 +1,10 @@
 pub mod query;
 pub mod state;
 
-use std::{ops::Deref, str::FromStr};
+use std::{ops::Deref, rc::Rc, str::FromStr};
 
-use drophub::{InvitePassword, RoomId, RoomOptions};
+use drophub::{ClientEvent, InvitePassword, RoomId, RoomOptions, RoomRpcClient};
+use jsonrpsee::core::client::Subscription;
 use serde::{Deserialize, Deserializer, Serialize};
 use yew::prelude::*;
 use yew_hooks::use_async;
@@ -12,12 +13,11 @@ use yew_router::prelude::*;
 use crate::{
     components::{RoomControl, RoomFiles},
     error::{Error, ShareError},
-    hooks::{use_notify, use_rpc, NotifyManager, NotifyProps},
+    hooks::{use_notify, use_rpc, NotifyProps},
     routes::room::{
         query::{ActionConnect, ActionCreate, Query},
         state::{ClientRole, State},
     },
-    rpc::{RoomCredentials, RoomMsg, RpcRequestTx, RpcSubscribeRequest, RpcSubscribeResponse},
     unwrap_notify_ext::UnwrapNotifyExt,
 };
 
@@ -26,9 +26,9 @@ pub fn room() -> Html {
     let notify_manager = use_notify();
     let location = use_location().expect_notify(&notify_manager, "Failed to get location");
     let state_handle = use_state(State::default);
-    let rpc_tx = use_rpc();
+    let rpc_client = use_rpc();
 
-    let room_handle = use_async(handle_room_update(rpc_tx.clone(), state_handle.clone()));
+    let room_handle = use_async(handle_room_update(rpc_client, state_handle.clone()));
 
     use_effect_with_deps(
         {
@@ -102,7 +102,7 @@ pub fn room() -> Html {
 }
 
 async fn handle_room_update(
-    rpc_tx: RpcRequestTx,
+    rpc_client: Rc<jsonrpsee::core::client::Client>,
     state_handle: UseStateHandle<State>,
 ) -> Result<(), ShareError> {
     let query = state_handle
@@ -115,78 +115,58 @@ async fn handle_room_update(
         Query::Create(ActionCreate {
             encryption,
             capacity,
-        }) => handle_host(rpc_tx, state_handle, encryption, capacity).await,
+        }) => {
+            let sub = rpc_client
+                .create(RoomOptions {
+                    encryption,
+                    capacity,
+                })
+                .await
+                .map_err(Error::from)?;
+
+            let mut s = state_handle.deref().clone();
+            s.client.role = ClientRole::Host;
+            state_handle.set(s);
+
+            handle_subscribe(sub, state_handle).await
+        }
         Query::Connect(ActionConnect {
             room_id,
             invite_password,
-        }) => handle_guest(rpc_tx, state_handle, room_id, invite_password).await,
-    }
-}
+        }) => {
+            let sub = rpc_client
+                .connect(room_id, invite_password)
+                .await
+                .map_err(Error::from)?;
 
-async fn handle_host(
-    rpc_tx: RpcRequestTx,
-    state_handle: UseStateHandle<State>,
-    encryption: bool,
-    capacity: usize,
-) -> Result<(), ShareError> {
-    let mut sub_rx = rpc_tx.sub(RpcSubscribeRequest::CreateRoom(RoomOptions {
-        encryption,
-        capacity,
-    }))?;
+            let mut s = state_handle.deref().clone();
+            s.client.role = ClientRole::Guest;
+            state_handle.set(s);
 
-    while let Some(resp) = sub_rx.recv().await {
-        match resp {
-            RpcSubscribeResponse::Room(room_msg) => match room_msg {
-                RoomMsg::Init(jwt, client_id) => {
-                    let mut s = state_handle.deref().clone();
-                    s.client.id = client_id;
-                    s.client.jwt = jwt;
-                    s.client.role = ClientRole::Host;
-                    state_handle.set(s);
-                }
-                RoomMsg::RoomInfo(room_info) => {
-                    let mut s = state_handle.deref().clone();
-                    s.room = room_info;
-                    s.loading = false;
-                    state_handle.set(s);
-                }
-                RoomMsg::UploadRequest(_) => unimplemented!(),
-            },
+            handle_subscribe(sub, state_handle).await
         }
     }
-
-    Ok(())
 }
 
-async fn handle_guest(
-    rpc_tx: RpcRequestTx,
+async fn handle_subscribe(
+    mut sub: Subscription<ClientEvent>,
     state_handle: UseStateHandle<State>,
-    room_id: RoomId,
-    invite_password: InvitePassword,
 ) -> Result<(), ShareError> {
-    let mut sub_rx = rpc_tx.sub(RpcSubscribeRequest::ConnectRoom(RoomCredentials {
-        id: room_id,
-        password: invite_password,
-    }))?;
-
-    while let Some(resp) = sub_rx.recv().await {
-        match resp {
-            RpcSubscribeResponse::Room(room_msg) => match room_msg {
-                RoomMsg::Init(jwt, client_id) => {
-                    let mut s = state_handle.deref().clone();
-                    s.client.id = client_id;
-                    s.client.jwt = jwt;
-                    s.client.role = ClientRole::Host;
-                    state_handle.set(s);
-                }
-                RoomMsg::RoomInfo(room_info) => {
-                    let mut s = state_handle.deref().clone();
-                    s.room = room_info;
-                    s.loading = false;
-                    state_handle.set(s);
-                }
-                RoomMsg::UploadRequest(_) => unimplemented!(),
-            },
+    while let Some(maybe_event) = sub.next().await {
+        let event = maybe_event.map_err(Error::from)?;
+        match event {
+            ClientEvent::Init(jwt, client_id) => {
+                let mut s = state_handle.deref().clone();
+                s.client.jwt = jwt;
+                s.client.id = client_id;
+                state_handle.set(s);
+            }
+            ClientEvent::RoomInfo(room_info) => {
+                let mut s = state_handle.deref().clone();
+                s.room = room_info;
+                state_handle.set(s);
+            }
+            ClientEvent::UploadRequest(_) => todo!("remove upload"),
         }
     }
 

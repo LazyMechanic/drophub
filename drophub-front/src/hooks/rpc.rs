@@ -1,34 +1,30 @@
+use std::rc::Rc;
+
+use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
 use yewdux::prelude::*;
 
-use crate::{rpc, rpc::RpcRequestTx};
+#[hook]
+pub fn use_rpc_storage() -> (Rc<RpcStorage>, Dispatch<RpcStorage>) {
+    use_store::<RpcStorage>()
+}
 
 #[hook]
-pub fn use_rpc() -> RpcRequestTx {
-    let s = use_store_value::<RpcStore>();
-    s.tx.clone()
+pub fn use_rpc() -> Rc<jsonrpsee::core::client::Client> {
+    let store = use_store_value::<RpcStorage>();
+    store
+        .rpc_client
+        .clone()
+        .expect_throw("RPC client is missing")
 }
 
-pub fn init_rpc(tx: RpcRequestTx) {
-    Dispatch::<RpcStore>::new().set(RpcStore { tx })
+#[derive(Debug, Clone, Default, Store)]
+pub struct RpcStorage {
+    pub rpc_client: Option<Rc<jsonrpsee::core::client::Client>>,
 }
 
-#[derive(Debug, Clone, Store)]
-struct RpcStore {
-    tx: RpcRequestTx,
-}
-
-/// Always true
-impl PartialEq for RpcStore {
-    fn eq(&self, _other: &Self) -> bool {
-        true
-    }
-}
-
-impl Default for RpcStore {
-    fn default() -> Self {
-        Self {
-            tx: rpc::channel().0,
-        }
+impl PartialEq for RpcStorage {
+    fn eq(&self, other: &Self) -> bool {
+        self.rpc_client.is_some() == other.rpc_client.is_some()
     }
 }
