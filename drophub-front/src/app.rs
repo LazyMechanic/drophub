@@ -49,7 +49,8 @@ pub fn app() -> Html {
             <div class="d-flex
                         flex-column
                         h-100
-                        w-100"
+                        w-100
+                        placeholder-glow"
             >
                 <header><Header /></header>
                 <main class="flex-grow-1">

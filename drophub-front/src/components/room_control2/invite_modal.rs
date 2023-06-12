@@ -10,7 +10,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
-    pub placeholder: bool,
+    pub loading: bool,
     pub room_id: RoomId,
     pub selected_invite: InvitePassword,
 }
@@ -48,9 +48,9 @@ pub fn invite_modal(props: &Props) -> Html {
             class="modal
                    modal-dialog-centered
                    fade"
-            id="inviteModal"
+            id="dh-room-control-invite-modal"
             tabindex="-1"
-            aria-labelledby="inviteModalLabel"
+            aria-labelledby="dh-room-control-invite-modal-label"
             aria-hidden="true"
             style="display: none;"
         >
@@ -59,7 +59,7 @@ pub fn invite_modal(props: &Props) -> Html {
                             text-bg-light"
                 >
                     <div class="modal-header">
-                        <h1 class="modal-title fs-4" id="inviteModalLabel">
+                        <h1 class="modal-title fs-4" id="dh-room-control-invite-modal-label">
                             {"Invite"}
                         </h1>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

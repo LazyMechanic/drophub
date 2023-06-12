@@ -1,21 +1,26 @@
 use std::rc::Rc;
 
+use drophub::ClientEvent;
+use jsonrpsee::core::client::Subscription;
 use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
 use yewdux::prelude::*;
 
+use crate::{hooks::use_notify, unwrap_notify_ext::UnwrapNotifyExt};
+
 #[hook]
 pub fn use_rpc_storage() -> (Rc<RpcStorage>, Dispatch<RpcStorage>) {
-    use_store::<RpcStorage>()
+    use_store()
 }
 
 #[hook]
 pub fn use_rpc() -> Rc<jsonrpsee::core::client::Client> {
+    let notify_manager = use_notify();
     let store = use_store_value::<RpcStorage>();
     store
         .rpc_client
         .clone()
-        .expect_throw("RPC client is missing")
+        .expect_notify(&notify_manager, "RPC client is missing")
 }
 
 #[derive(Debug, Clone, Default, Store)]

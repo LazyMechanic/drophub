@@ -1,7 +1,7 @@
 pub mod query;
 pub mod state;
 
-use std::{ops::Deref, rc::Rc, str::FromStr};
+use std::{collections::HashMap, ops::Deref, rc::Rc, str::FromStr};
 
 use drophub::{ClientEvent, InvitePassword, RoomId, RoomOptions, RoomRpcClient};
 use jsonrpsee::core::client::Subscription;
@@ -11,12 +11,15 @@ use yew_hooks::use_async;
 use yew_router::prelude::*;
 
 use crate::{
-    components::{RoomControl, RoomFiles},
+    components::{RoomControl, RoomMediaShare},
     error::{Error, ShareError},
     hooks::{use_notify, use_rpc, NotifyProps},
-    routes::room::{
-        query::{ActionConnect, ActionCreate, Query},
-        state::{ClientRole, State},
+    routes::{
+        room::{
+            query::{ActionConnect, ActionCreate, Query},
+            state::{ClientRole, State},
+        },
+        Route,
     },
     unwrap_notify_ext::UnwrapNotifyExt,
 };
@@ -25,10 +28,12 @@ use crate::{
 pub fn room() -> Html {
     let notify_manager = use_notify();
     let location = use_location().expect_notify(&notify_manager, "Failed to get location");
+    let navigator = use_navigator().expect_notify(&notify_manager, "Failed to get navigator");
     let state_handle = use_state(State::default);
-    let rpc_client = use_rpc();
+    //let rpc_client = use_rpc();
 
-    let room_handle = use_async(handle_room_update(rpc_client, state_handle.clone()));
+    //let room_handle = use_async(handle_room_update(rpc_client, state_handle.clone()));
+    let room_handle = use_async(async { Ok::<(), ShareError>(()) });
 
     use_effect_with_deps(
         {
@@ -38,6 +43,8 @@ pub fn room() -> Html {
                 if let Some(err) = &room_handle.error {
                     notify_manager
                         .show_notify(NotifyProps::error(format!("Room handling failed: {err:?}")));
+
+                    navigator.push(&Route::Home);
                 }
             }
         },
@@ -83,20 +90,28 @@ pub fn room() -> Html {
     );
 
     html! {
-        <div class="d-flex
-                    flex-row
+        <div class="container-fluid
                     h-100
-                    placeholder-glow"
+                    p-3
+                    gap-3
+                    bg-body-secondary"
         >
             <RoomControl
-                placeholder={state_handle.loading}
-                room={state_handle.room.clone()}
-                client={state_handle.client.clone()}
+                loading={state_handle.loading}
+                room_id={state_handle.room.room_id}
+                clients={
+                    state_handle
+                        .room
+                        .clients
+                        .iter()
+                        .map(|id| (*id, if *id == state_handle.room.host_id { ClientRole::Host } else { ClientRole::Guest } ))
+                        .collect::<HashMap<_, _>>()
+                }
+                cur_client={(state_handle.client.id, state_handle.client.role)}
+                invites={state_handle.room.invites.clone()}
+                capacity={state_handle.room.options.capacity}
             />
-            <RoomFiles
-                placeholder={state_handle.loading}
-                files={state_handle.room.files.clone()}
-            />
+            <RoomMediaShare />
         </div>
     }
 }

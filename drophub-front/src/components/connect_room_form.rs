@@ -7,7 +7,10 @@ use yew_router::hooks::use_navigator;
 
 use crate::{
     hooks::{use_form_validation, use_notify},
-    routes::Route,
+    routes::{
+        room::query::{ActionConnect, Query},
+        Route,
+    },
     unwrap_notify_ext::UnwrapNotifyExt,
 };
 
@@ -75,13 +78,20 @@ pub fn connect_room_form() -> Html {
                 .expect_notify(&notify_manager, "Failed to cast to 'HtmlFormElement'");
 
             if elem.check_validity() {
-                navigator.push(&Route::ConnectRoom {
-                    room_id: state_handle.room_id.unwrap_notify(&notify_manager),
-                    invite_password: state_handle
-                        .invite_password
-                        .clone()
-                        .unwrap_notify(&notify_manager),
-                });
+                navigator
+                    .push_with_query(
+                        &Route::Room,
+                        &Query::Connect(ActionConnect {
+                            room_id: state_handle
+                                .room_id
+                                .expect_notify(&notify_manager, "Room id is missing"),
+                            invite_password: state_handle
+                                .invite_password
+                                .clone()
+                                .expect_notify(&notify_manager, "Invite password is missing"),
+                        }),
+                    )
+                    .unwrap_notify(&notify_manager);
             }
         }
     });
@@ -124,7 +134,7 @@ pub fn connect_room_form() -> Html {
             <button
                 type="submit"
                 class="btn
-                       btn-secondary"
+                       btn-primary"
             >
                 { "Connect" }
             </button>

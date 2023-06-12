@@ -7,7 +7,10 @@ use yew_router::hooks::use_navigator;
 
 use crate::{
     hooks::use_notify,
-    routes::{create_room::Query, Route},
+    routes::{
+        room::query::{ActionCreate, Query},
+        Route,
+    },
     unwrap_notify_ext::UnwrapNotifyExt,
 };
 
@@ -97,11 +100,11 @@ pub fn create_room_form() -> Html {
             if elem.check_validity() {
                 navigator
                     .push_with_query(
-                        &Route::CreateRoom,
-                        &Query {
+                        &Route::Room,
+                        &Query::Create(ActionCreate {
                             encryption: state_handle.encryption,
                             capacity: state_handle.capacity,
-                        },
+                        }),
                     )
                     .unwrap_notify(&notify_manager);
             }

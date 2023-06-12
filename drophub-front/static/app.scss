@@ -1,3 +1,13 @@
 .dh-home-tab-btn.nav-link.active {
     font-weight: bold;
 }
+
+.dh-room-control
+.dh-room-control-text {
+    display: inline;
+}
+
+.dh-room-control.dh-room-control-minimized
+.dh-room-control-text {
+    display: none;
+}
