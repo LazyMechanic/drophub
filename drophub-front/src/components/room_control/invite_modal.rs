@@ -118,5 +118,5 @@ pub fn invite_modal(props: &Props) -> Html {
 }
 
 fn format_invite_link(base_url: &str, room_id: RoomId, invite_password: &str) -> String {
-    format!("{base_url}/room?action=connect&room_id={room_id}&invite_password={invite_password}")
+    format!("{base_url}/room/connect/{room_id}/{invite_password}")
 }
