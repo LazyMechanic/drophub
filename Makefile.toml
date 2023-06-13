@@ -1,0 +1,40 @@
+[config]
+# Run task once to whole workspace, not for every member
+default_to_workspace = false
+
+[tasks.install-wasm-bindgen-cli]
+install_crate = "wasm-bindgen-cli"
+
+[tasks.install-trunk]
+install_crate = "trunk"
+dependencies = [ "install-wasm-bindgen-cli" ]
+
+[tasks.npm-install]
+command = "npm"
+args = ["--prefix", "./drophub-front", "install"]
+
+[tasks.trunk-build]
+command = "trunk"
+args = ["build"]
+dependencies = [ "install-trunk" ]
+
+[tasks.trunk-serve]
+command = "trunk"
+args = ["serve"]
+dependencies = [ "install-trunk" ]
+
+### Final tasks
+
+[tasks.front-build]
+dependencies = [
+    "npm-install",
+    # TODO: run server
+    "trunk-build",
+]
+
+[tasks.front-serve]
+dependencies = [
+    "npm-install",
+    # TODO: run server
+    "trunk-serve",
+]

@@ -13,8 +13,3 @@ ignore = [
     "./drophub-front/node_modules",
     "./drophub-front/package-lock.json",
 ]
-
-[[hooks]]
-stage = "pre_build"
-command = "npm"
-command_arguments = ["--prefix", "./drophub-front", "install"]
