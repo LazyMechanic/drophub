@@ -53,7 +53,7 @@ pub fn app() -> Html {
                         placeholder-glow"
             >
                 <header><Header /></header>
-                <main class="flex-grow-1">
+                <main class="h-100">
                     {main_content}
                     <NotifyContainer />
                 </main>

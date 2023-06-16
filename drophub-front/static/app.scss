@@ -2,12 +2,34 @@
     font-weight: bold;
 }
 
+.dh-room-control {
+    width: 19rem;
+    transition: width 0.5s ease;
+}
+
+.dh-room-control.dh-room-control-minimized {
+    /* btn margin + control margin + icon size */
+    width: calc(0.75rem * 2 + 1rem * 2 + 1rem);
+}
+
 .dh-room-control
-.dh-room-control-text {
-    display: inline;
+.dh-room-control-hidden {
+    opacity: 1;
+    transition: all 0.2s ease-in-out;
 }
 
 .dh-room-control.dh-room-control-minimized
-.dh-room-control-text {
-    display: none;
+.dh-room-control-hidden {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
+}
+
+#dh-room-control-minmax-icon {
+    transition: all 0.3s ease-in-out;
+}
+
+.dh-room-control.dh-room-control-minimized
+#dh-room-control-minmax-icon {
+    transform: rotate(180deg);
 }

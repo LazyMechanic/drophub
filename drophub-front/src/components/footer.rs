@@ -12,7 +12,6 @@ pub fn footer() -> Html {
                    justify-content-center
                    text-center
                    align-items-center
-                   w-100
                    bg-dark"
         >
             <ul class="nav nav-underline">

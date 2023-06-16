@@ -48,7 +48,8 @@ pub fn room_media_share(props: &Props) -> Html {
                    shadow
                    h-100
                    p-3
-                   gap-2"
+                   gap-2
+                   overflow-y-auto"
         >
             <div class="row
                         row-cols-auto 
