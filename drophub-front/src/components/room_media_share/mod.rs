@@ -39,24 +39,31 @@ pub fn room_media_share(props: &Props) -> Html {
     };
 
     html! {
-        <div
-            class="container-fluid
-                   bg-shade
-                   border
-                   border-0
-                   rounded
-                   shadow
-                   h-100
-                   p-3
-                   gap-2
-                   overflow-y-auto"
+        <div class="overflow-scroll-marker
+                    overflow-scroll-marker-shade
+                    border
+                    border-0
+                    rounded"
         >
-            <div class="row
-                        row-cols-auto 
-                        g-3"
+            <div
+                class="container-fluid
+                       bg-shade
+                       border
+                       border-0
+                       rounded
+                       shadow
+                       h-100
+                       p-3
+                       gap-2
+                       overflow-y-auto"
             >
-                {medias}
-                {upload}
+                <div class="row
+                            row-cols-auto 
+                            g-3"
+                >
+                    {medias}
+                    {upload}
+                </div>
             </div>
         </div>
     }

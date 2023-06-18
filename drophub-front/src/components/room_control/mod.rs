@@ -57,7 +57,8 @@ pub fn room_control(props: &Props) -> Html {
                     flex-shrink-0
                     border
                     border-0
-                    rounded">
+                    rounded"
+        >
             <div
                 class="d-flex
                        flex-column
