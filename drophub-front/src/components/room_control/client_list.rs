@@ -1,111 +1,152 @@
+use std::collections::HashMap;
+
 use drophub::ClientId;
+use web_sys::Element;
 use yew::prelude::*;
 
-use crate::components::{room_control::MenuState, Placeholder};
+use crate::{
+    components::Placeholder, hooks::use_notify, routes::room::state::ClientRole,
+    unwrap_notify_ext::UnwrapNotifyExt,
+};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
-    pub placeholder: bool,
-    pub menu_state: MenuState,
-    pub clients: Vec<ClientId>,
-    pub host: ClientId,
-    pub cur_client: ClientId,
+    pub loading: bool,
+    pub clients: HashMap<ClientId, ClientRole>,
+    pub cur_client: (ClientId, ClientRole),
+    pub capacity: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct State {
+    host: ClientId,
 }
 
 #[function_component(ClientList)]
 pub fn client_list(props: &Props) -> Html {
-    let header = match props.menu_state {
-        MenuState::Expanded => html! {
-            <div class="fw-bold">
-                <i class="bi bi-diagram-3 me-2"></i>
-                {"Clients"}
-            </div>
-        },
-        MenuState::Minimized => html! {
-            <i class="bi bi-diagram-3 text-center"></i>
-        },
-    };
+    let notify_manager = use_notify();
 
-    let clients = {
-        props
-            .clients
-            .iter()
-            .map(|client_id| {
-                // TODO: highlight all owned files on hover
-                let btn_classes = classes!(
-                    "btn",
-                    "dropdown-toggle",
-                    "caret-off",
-                    "font-monospace",
-                    if *client_id == props.host {
-                        "btn-primary"
-                    } else {
-                        "btn-light"
+    let icon_node_ref = use_node_ref();
+    let btn_node_ref = use_node_ref();
+    let collapse_btn_onclick = Callback::from({
+        let icon_node_ref = icon_node_ref.clone();
+        let btn_node_ref = btn_node_ref.clone();
+        move |_| {
+            let icon = icon_node_ref
+                .cast::<Element>()
+                .expect_notify(&notify_manager, "Failed to cast 'NodeRef' to 'Element'");
+            icon.class_list()
+                .toggle("show")
+                .expect_notify(&notify_manager, "Failed to toggle 'show' class");
+
+            let btn = btn_node_ref
+                .cast::<Element>()
+                .expect_notify(&notify_manager, "Failed to cast 'NodeRef' to 'Element'");
+            btn.class_list()
+                .toggle("btn-shade")
+                .expect_notify(&notify_manager, "Failed to toggle 'btn-shade' class");
+            btn.class_list()
+                .toggle("btn-accent")
+                .expect_notify(&notify_manager, "Failed to toggle 'btn-accent' class");
+        }
+    });
+
+    let clients = props
+        .clients
+        .iter()
+        .map(|(id, role)| {
+            // TODO: highlight all owned files on hover
+            let icon_classes = classes! {
+                "bi",
+                if *id == props.cur_client.0 {
+                    match role {
+                        ClientRole::Host => "bi-person-fill-gear",
+                        ClientRole::Guest => "bi-person-fill",
                     }
-                );
-                let kick_classes = classes!(
-                    "dropdown-item",
-                    if props.cur_client == props.host && client_id != &props.cur_client {
-                        None // enabled
-                    } else {
-                        Some("disabled")
+                } else {
+                    match role {
+                        ClientRole::Host => "bi-person-gear",
+                        ClientRole::Guest => "bi-person",
                     }
-                );
+                },
+                "dh-room-control-icon",
+            };
 
-                let btn_content = match props.menu_state {
-                    MenuState::Expanded => html! {
-                        <Placeholder<String>
-                            enabled={props.placeholder}
-                            content={format_short_client_id(client_id.clone())}
-                        />
-                    },
-                    MenuState::Minimized => html! {
-                        <i class="bi bi-person"></i>
-                    },
-                };
-
-                html! {
-                    <div class="btn-group
-                                dropend"
+            html! {
+                <button
+                    class="btn
+                           btn-shade-10
+                           text-start"
+                    type="button"
+                    // TODO: open modal
+                >
+                    <i class={icon_classes}></i>
+                    <span class="dh-room-control-hidden
+                                 ms-2
+                                 font-monospace
+                                 d-inline-block"
                     >
-                        <button
-                            class={btn_classes}
-                            type="button"
-                            data-bs-toggle="dropdown"
-                            data-bs-auto-close="outside"
-                            aria-expanded="false"
-                        >
-                            {btn_content}
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><h6 class="dropdown-header">{client_id}</h6></li>
-                            <li>
-                                <button
-                                    class={kick_classes}
-                                    type="button"
-                                    // TODO: add onclick event
-                                >
-                                    { "Kick" }
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-                }
-            })
-            .collect::<Html>()
-    };
+                        <Placeholder<String>
+                            enabled={props.loading}
+                            content={format_short_client_id(*id)}
+                        />
+                    </span>
+                </button>
+            }
+        })
+        .collect::<Html>();
 
     html! {
-        <div class="d-flex
-                    flex-column 
-                    gap-2"
-        >
-            {header}
-            <div class="btn-group-vertical shadow" role="group" aria-label="Clients">
-                {clients}
+        <>
+            <button
+                class="btn
+                       btn-shade
+                       d-flex
+                       flex-row 
+                       position-relative"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#dh-room-control-client-collapse"
+                aria-expanded="false"
+                aria-controls="dh-room-control-client-collapse"
+                onclick={collapse_btn_onclick}
+                ref={btn_node_ref}
+            >
+                <i class="bi
+                          bi-people"
+                ></i>
+                <span class="d-inline-block
+                             ms-2
+                             me-auto
+                             dh-room-control-hidden"
+                >
+                    {"Clients "}
+                    <Placeholder<String>
+                        enabled={props.loading}
+                        content={format!("{} / {}", props.clients.len(), props.capacity)}
+                    />
+                    <i
+                        class="bi
+                               bi-chevron-right
+                               collapse-icon"
+                        ref={icon_node_ref}
+                    ></i>
+                </span>
+            </button>
+            <div
+                class="collapse"
+                id="dh-room-control-client-collapse"
+            >
+                <div
+                    class="btn-group-vertical
+                           w-100"
+                    role="group"
+                >
+                    {clients}
+                </div>
             </div>
-        </div>
+        </>
     }
 }
 

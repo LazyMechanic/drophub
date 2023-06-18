@@ -1,103 +1,169 @@
-use drophub::InvitePassword;
+use std::ops::Deref;
+
+use drophub::{InvitePassword, RoomId};
+use web_sys::Element;
 use yew::prelude::*;
 
-use crate::components::{room_control::MenuState, Placeholder};
+use crate::{
+    components::{room_control::invite_modal::InviteModal, Placeholder},
+    hooks::use_notify,
+    unwrap_notify_ext::UnwrapNotifyExt,
+};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
-    pub placeholder: bool,
-    pub menu_state: MenuState,
+    pub loading: bool,
+    pub room_id: RoomId,
     pub invites: Vec<InvitePassword>,
-    pub room_cap: usize,
-    pub room_len: usize,
-    pub invite_onclick: Callback<MouseEvent, ()>,
+    pub capacity: usize,
+    pub clients_count: usize,
 }
 
 #[function_component(InviteList)]
 pub fn invite_list(props: &Props) -> Html {
-    let header = match props.menu_state {
-        MenuState::Expanded => html! {
-            <div class="fw-bold">
-                <i class="bi bi-envelope-check me-2"></i>
-                {"Invites"}
-            </div>
-        },
-        MenuState::Minimized => html! {
-            <i class="bi bi-envelope-check text-center"></i>
-        },
-    };
+    let notify_manager = use_notify();
 
-    let invites = {
-        let invite_btns = {
-            let rest_invites_count = props.room_cap - props.room_len - props.invites.len();
-            let no_more_invites = rest_invites_count == 0;
-            let invite_btns_count = if no_more_invites {
-                1
-            } else {
-                rest_invites_count
-            };
+    let selected_invite_handle = use_state(String::default);
 
-            std::iter::repeat_with(move || {
-                html! {
-                    <button
-                        class="btn
-                               btn-dark"
-                        type="button"
-                        disabled={no_more_invites}
-                        // TODO: add onclick event
+    let icon_node_ref = use_node_ref();
+    let btn_node_ref = use_node_ref();
+    let collapse_btn_onclick = Callback::from({
+        let icon_node_ref = icon_node_ref.clone();
+        let btn_node_ref = btn_node_ref.clone();
+        move |_| {
+            let icon = icon_node_ref
+                .cast::<Element>()
+                .expect_notify(&notify_manager, "Failed to cast 'NodeRef' to 'Element'");
+            icon.class_list()
+                .toggle("show")
+                .expect_notify(&notify_manager, "Failed to toggle 'show' class");
+
+            let btn = btn_node_ref
+                .cast::<Element>()
+                .expect_notify(&notify_manager, "Failed to cast 'NodeRef' to 'Element'");
+            btn.class_list()
+                .toggle("btn-shade")
+                .expect_notify(&notify_manager, "Failed to toggle 'btn-shade' class");
+            btn.class_list()
+                .toggle("btn-accent")
+                .expect_notify(&notify_manager, "Failed to toggle 'btn-accent' class");
+        }
+    });
+
+    let invites = props
+        .invites
+        .iter()
+        .map(|invite_password| {
+            let onclick = Callback::from({
+                let selected_invite_handle = selected_invite_handle.clone();
+                let invite_password = invite_password.clone();
+                move |_| selected_invite_handle.set(invite_password.clone())
+            });
+
+            html! {
+                <button
+                    class="btn
+                           btn-shade-10
+                           text-start"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#dh-room-control-invite-modal"
+                    {onclick}
+                >
+                    <i class="bi
+                              bi-envelope"
+                    ></i>
+                    <span class="dh-room-control-hidden
+                                 font-monospace
+                                 ms-2
+                                 d-inline-block"
                     >
-                        <i class="bi bi-plus-lg"></i>
-                    </button>
-                }
-            })
-            .take(invite_btns_count)
-        };
-
-        props
-            .invites
-            .iter()
-            .map(|invite_password| {
-                let onclick = props.invite_onclick.clone();
-                let btn_content = match props.menu_state {
-                    MenuState::Expanded => html! {
                         <Placeholder<InvitePassword>
-                            enabled={props.placeholder}
+                            enabled={props.loading}
                             content={invite_password.clone()}
                         />
-                    },
-                    MenuState::Minimized => html! {
-                        <i class="bi bi-envelope"></i>
-                    },
-                };
-
+                    </span>
+                </button>
+            }
+        })
+        .chain(
+            std::iter::repeat_with(|| {
+                let rest_invites_count = props.capacity - props.clients_count - props.invites.len();
+                let no_more_invites = rest_invites_count == 0;
                 html! {
                     <button
                         class="btn
-                               btn-light
-                               font-monospace"
+                               btn-shade-20
+                               text-center"
                         type="button"
-                        data-bs-toggle="modal"
-                        data-bs-target="#inviteModal"
-                        {onclick}
+                        disabled={no_more_invites}
                     >
-                        {btn_content}
+                        <i class="bi
+                                  bi-plus-lg
+                                  dh-room-control-icon"
+                        ></i>
                     </button>
                 }
             })
-            .chain(invite_btns)
-            .collect::<Html>()
-    };
+            .take(1),
+        )
+        .collect::<Html>();
 
     html! {
-        <div class="d-flex
-                    flex-column 
-                    gap-2"
-        >
-            {header}
-            <div class="btn-group-vertical shadow" role="group" aria-label="Invites">
-                {invites}
+        <>
+            <button
+                class="btn
+                       btn-shade
+                       d-flex
+                       flex-row 
+                       position-relative"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#dh-room-control-invite-collapse"
+                aria-expanded="false"
+                aria-controls="dh-room-control-invite-collapse"
+                onclick={collapse_btn_onclick}
+                ref={btn_node_ref}
+            >
+                <i class="bi
+                          bi-envelope-check"
+                ></i>
+                <span class="d-inline-block
+                             ms-2
+                             me-auto
+                             dh-room-control-hidden"
+                >
+                    {"Invites "}
+                    <Placeholder<String>
+                        enabled={props.loading}
+                        content={format!("{} / {}", props.invites.len(), props.capacity - props.clients_count)}
+                    />
+                    <i
+                        class="bi
+                               bi-chevron-right
+                               collapse-icon"
+                        ref={icon_node_ref}
+                    ></i>
+                </span>
+            </button>
+            <div
+                class="collapse"
+                id="dh-room-control-invite-collapse"
+            >
+                <div
+                    class="btn-group-vertical
+                           w-100"
+                    role="group"
+                >
+                    {invites}
+                </div>
             </div>
-        </div>
+            <InviteModal
+                loading={props.loading}
+                room_id={props.room_id}
+                invite_password={selected_invite_handle.deref().clone()}
+            />
+        </>
     }
 }

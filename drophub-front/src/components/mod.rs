@@ -8,9 +8,7 @@ pub mod header;
 pub mod notify;
 pub mod placeholder;
 pub mod qr_code;
-//pub mod room_control;
-pub mod room_control2;
-//pub mod room_files;
+pub mod room_control;
 pub mod room_media_share;
 
 pub use self::{
@@ -24,6 +22,6 @@ pub use self::{
     notify::{NotifyContainer, NotifyKind},
     placeholder::Placeholder,
     qr_code::QrCode,
-    room_control2::RoomControl,
+    room_control::RoomControl,
     room_media_share::RoomMediaShare,
 };

@@ -1,10 +1,12 @@
 use drophub::{ClientId, RoomId, RoomOptions};
 use yew::prelude::*;
 
+use crate::components::Placeholder;
+
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
-    pub placeholder: bool,
+    pub loading: bool,
     pub room_id: RoomId,
     pub room_opts: RoomOptions,
     pub host: ClientId,
@@ -17,18 +19,18 @@ pub fn room_info_modal(props: &Props) -> Html {
             class="modal
                    modal-dialog-centered
                    fade"
-            id="roomInfoModal"
+            id="dh-room-control-room-info-modal"
             tabindex="-1"
-            aria-labelledby="roomInfoModalLabel"
+            aria-labelledby="dh-room-control-room-info-modal-label"
             aria-hidden="true"
             style="display: none;"
         >
             <div class="modal-dialog">
                 <div class="modal-content
-                            text-bg-light"
+                            bg-shade"
                 >
                     <div class="modal-header">
-                        <h1 class="modal-title fs-4" id="roomInfoModalLabel">
+                        <h1 class="modal-title fs-4" id="dh-room-control-room-info-modal-label">
                             {"Room info"}
                         </h1>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -38,15 +40,39 @@ pub fn room_info_modal(props: &Props) -> Html {
                             <tbody>
                                 <tr>
                                     <th scope="row">{"Room ID"}</th>
-                                    <td>{props.room_id}</td>
+                                    <td>
+                                        <Placeholder<RoomId>
+                                            enabled={props.loading}
+                                            content={props.room_id}
+                                        />
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th scope="row">{"Host ID"}</th>
-                                    <td>{props.host}</td>
+                                    <td>
+                                        <Placeholder<ClientId>
+                                            enabled={props.loading}
+                                            content={props.host}
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">{"Capacity"}</th>
+                                    <td>
+                                        <Placeholder<usize>
+                                            enabled={props.loading}
+                                            content={props.room_opts.capacity}
+                                        />
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th scope="row">{"Encryption"}</th>
-                                    <td>{props.room_opts.encryption}</td>
+                                    <td>
+                                        <Placeholder<bool>
+                                            enabled={props.loading}
+                                            content={props.room_opts.encryption}
+                                        />
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>

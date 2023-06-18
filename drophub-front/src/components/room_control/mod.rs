@@ -1,157 +1,106 @@
 mod client_list;
+mod header;
 mod invite_list;
 mod invite_modal;
 mod room_info;
 mod room_info_modal;
 
-use std::ops::Deref;
+use std::collections::HashMap;
 
-use drophub::{InvitePassword, RoomInfo};
-use web_sys::HtmlButtonElement;
+use drophub::{ClientId, InvitePassword, RoomId, RoomOptions};
+use web_sys::Element;
 use yew::prelude::*;
-use yew_hooks::use_toggle;
 
-use self::{
-    client_list::ClientList, invite_list::InviteList, invite_modal::InviteModal,
-    room_info::RoomInfo as RoomInfoComponent, room_info_modal::RoomInfoModal,
-};
+use self::{client_list::ClientList, header::Header, invite_list::InviteList, room_info::RoomInfo};
 use crate::{
-    hooks::use_notify, routes::room::state::ClientInfo, unwrap_notify_ext::UnwrapNotifyExt,
+    components::Placeholder, hooks::use_notify, routes::room::state::ClientRole,
+    unwrap_notify_ext::UnwrapNotifyExt,
 };
 
-#[derive(Debug, Clone, PartialEq, Properties)]
+#[derive(Debug, Clone, Eq, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
-    pub placeholder: bool,
-    pub room: RoomInfo,
-    pub client: ClientInfo,
-}
-
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
-struct State {
-    menu: MenuState,
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum MenuState {
-    Expanded,
-    Minimized,
-}
-
-impl Default for MenuState {
-    fn default() -> Self {
-        MenuState::Expanded
-    }
-}
-
-impl MenuState {
-    fn toggle(&self) -> Self {
-        match self {
-            MenuState::Expanded => MenuState::Minimized,
-            MenuState::Minimized => MenuState::Expanded,
-        }
-    }
+    pub loading: bool,
+    pub room_id: RoomId,
+    pub room_opts: RoomOptions,
+    pub clients: HashMap<ClientId, ClientRole>,
+    pub cur_client: (ClientId, ClientRole),
+    pub host: ClientId,
+    pub invites: Vec<InvitePassword>,
 }
 
 #[function_component(RoomControl)]
 pub fn room_control(props: &Props) -> Html {
     let notify_manager = use_notify();
+    let container_node_ref = use_node_ref();
 
-    // TODO: animation on expanding/minimizing
-    let menu_state_handle = use_toggle(MenuState::Expanded, MenuState::Minimized);
-    let selected_invite_handle = use_state(|| None);
+    let on_minmax = Callback::from({
+        let container_node_ref = container_node_ref.clone();
+        move |_| {
+            let elem = container_node_ref
+                .cast::<Element>()
+                .expect_notify(&notify_manager, "Failed to cast 'NodeRef' to 'Element'");
 
-    let min_exp_btn = {
-        let minexp_onclick = Callback::from({
-            let menu_state_handle = menu_state_handle.clone();
-            move |_: MouseEvent| menu_state_handle.toggle()
-        });
-        let icon = match *menu_state_handle {
-            MenuState::Expanded => html! { <i class="bi bi-caret-left"></i> },
-            MenuState::Minimized => html! { <i class="bi bi-caret-right"></i> },
-        };
-        let classes = classes!(
-            "btn",
-            "btn-outline-light",
-            "mt-auto",
-            match *menu_state_handle {
-                MenuState::Expanded => Some("ms-auto"),
-                MenuState::Minimized => None,
-            },
-        );
-
-        html! {
-            <button
-                class={classes}
-                type="button"
-                onclick={minexp_onclick}
-            >
-                {icon}
-            </button>
-        }
-    };
-
-    let invite_onclick = Callback::from({
-        let notify_manager = notify_manager.clone();
-        let selected_invite_handle = selected_invite_handle.clone();
-        move |e: MouseEvent| {
-            let btn = e.target_dyn_into::<HtmlButtonElement>().expect_notify(
-                &notify_manager,
-                "Failed to convert 'MouseEvent' target to 'HtmlButtonElement'",
-            );
-
-            let invite_password = btn.text_content();
-            selected_invite_handle.set(invite_password)
+            elem.class_list()
+                .toggle("dh-room-control-minimized")
+                .expect_notify(
+                    &notify_manager,
+                    "Failed to toggle 'dh-room-control-minimized' class",
+                );
         }
     });
 
-    let container_classes = classes!(
-        "d-flex",
-        "flex-column",
-        "text-bg-secondary",
-        "h-100",
-        match *menu_state_handle {
-            MenuState::Expanded => &["p-3", "pt-2", "pb-2"][..],
-            MenuState::Minimized => &["p-2"][..],
-        },
-        "gap-2",
-    );
-
     html! {
-        // TODO: change color by role
-        <div class={container_classes}>
-            <RoomInfoComponent
-                placeholder={props.placeholder}
-                menu_state={*menu_state_handle}
-                room_id={props.room.room_id}
-            />
-            <ClientList
-                placeholder={props.placeholder}
-                menu_state={*menu_state_handle}
-                clients={props.room.clients.clone()}
-                host={props.room.host_id}
-                cur_client={props.client.id}
-            />
-            <InviteList
-                placeholder={props.placeholder}
-                menu_state={*menu_state_handle}
-                invites={props.room.invites.clone()}
-                room_cap={props.room.options.capacity}
-                room_len={props.room.clients.len()}
-                invite_onclick={invite_onclick}
-            />
-            {min_exp_btn}
-            <InviteModal
-                placeholder={props.placeholder}
-                room_id={props.room.room_id}
-                selected_invite={selected_invite_handle.deref().clone().unwrap_or_else(|| "password".to_owned())}
-            />
-            <RoomInfoModal
-                placeholder={props.placeholder}
-                room_id={props.room.room_id}
-                room_opts={props.room.options.clone()}
-                host={props.room.host_id}
-            />
+        <div class="overflow-scroll-marker
+                    overflow-scroll-marker-shade
+                    flex-grow-0
+                    flex-shrink-0
+                    border
+                    border-0
+                    rounded">
+            <div
+                class="d-flex
+                       flex-column
+                       align-items-stretch
+                       border
+                       border-0
+                       rounded
+                       bg-shade
+                       shadow
+                       p-3
+                       gap-2
+                       h-100
+                       text-nowrap
+                       overflow-y-auto
+                       dh-room-control"
+                ref={container_node_ref}
+            >
+                <Header
+                    loading={props.loading}
+                    room_id={props.room_id}
+                    on_minmax={on_minmax}
+                />
+                <hr class="my-1" />
+                <RoomInfo
+                    loading={props.loading}
+                    room_id={props.room_id}
+                    room_opts={props.room_opts.clone()}
+                    host={props.host}
+                />
+                <ClientList
+                    loading={props.loading}
+                    clients={props.clients.clone()}
+                    cur_client={props.cur_client.clone()}
+                    capacity={props.room_opts.capacity}
+                />
+                <InviteList
+                    loading={props.loading}
+                    room_id={props.room_id}
+                    invites={props.invites.clone()}
+                    capacity={props.room_opts.capacity}
+                    clients_count={props.clients.len()}
+                />
+            </div>
         </div>
     }
 }

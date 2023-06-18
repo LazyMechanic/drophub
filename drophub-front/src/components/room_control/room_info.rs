@@ -1,60 +1,47 @@
-use drophub::RoomId;
+use drophub::{ClientId, RoomId, RoomOptions};
 use yew::prelude::*;
 
-use crate::components::{room_control::MenuState, Placeholder};
+use crate::components::room_control::room_info_modal::RoomInfoModal;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
-    pub placeholder: bool,
-    pub menu_state: MenuState,
+    pub loading: bool,
     pub room_id: RoomId,
+    pub room_opts: RoomOptions,
+    pub host: ClientId,
 }
 
 #[function_component(RoomInfo)]
 pub fn room_info(props: &Props) -> Html {
-    let header = match props.menu_state {
-        MenuState::Expanded => html! {
-            <div class="fw-bold">
-                <i class="bi bi-info-square me-2"></i>
-                {"Room "}
-                <Placeholder<RoomId>
-                    enabled={props.placeholder}
-                    content={props.room_id}
-                />
-            </div>
-        },
-        MenuState::Minimized => html! {
-            <i class="bi bi-info-square text-center"></i>
-        },
-    };
-
-    let info_btn = {
-        let content = match props.menu_state {
-            MenuState::Expanded => html! { <>{"Info"}</>},
-            MenuState::Minimized => html! { <i class="bi bi-sliders"></i> },
-        };
-
-        html! {
+    html! {
+        <>
             <button
                 class="btn
-                       btn-light"
+                       btn-shade
+                       d-flex
+                       flex-row "
                 type="button"
                 data-bs-toggle="modal"
-                data-bs-target="#roomInfoModal"
+                data-bs-target="#dh-room-control-room-info-modal"
             >
-                {content}
+                <i class="bi
+                          bi-info-square"
+                ></i>
+                <span class="d-inline-block
+                             ms-2
+                             me-auto
+                             dh-room-control-hidden"
+                >
+                    {"Room info"}
+                </span>
             </button>
-        }
-    };
-
-    html! {
-        <div class="d-flex
-                    flex-column
-                    gap-2"
-        >
-            {header}
-            {info_btn}
-        </div>
+            <RoomInfoModal
+                loading={props.loading}
+                room_id={props.room_id}
+                room_opts={props.room_opts.clone()}
+                host={props.host}
+            />
+        </>
     }
 }
