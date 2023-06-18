@@ -46,20 +46,27 @@ pub fn app() -> Html {
 
     html! {
         <BrowserRouter>
-            <div class="d-flex
-                        flex-column
-                        h-100
-                        w-100
-                        placeholder-glow"
+            <div
+                class="d-flex
+                       flex-column
+                       h-100
+                       w-100
+                       placeholder-glow"
             >
                 <header><Header /></header>
-                <main class="h-100">
+                <main class="bg-shade-10
+                             container-fluid
+                             h-100
+                             p-3"
+                >
                     {main_content}
                     <NotifyContainer />
                 </main>
                 <footer><Footer /></footer>
             </div>
         </BrowserRouter>
+
+        //<button class="btn btn-first" type="button">{"button"}</button>
     }
 }
 

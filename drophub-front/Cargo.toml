@@ -29,7 +29,7 @@ tracing-wasm = "0.2.1"
 url = { version = "2.3.1", features = ["serde"] }
 uuid = { version = "1.3.2", features = ["v4", "js"] }
 wasm-bindgen = "0.2.84"
-web-sys = { version = "0.3.61", features = ["HtmlSelectElement", "HtmlButtonElement", "HtmlFormElement", "DomTokenList", "DomRect"] }
+web-sys = { version = "0.3.61", features = ["HtmlSelectElement", "HtmlButtonElement", "HtmlFormElement", "DomTokenList", "DomRect", "NamedNodeMap", "Attr", "MediaQueryList"] }
 yew = { version = "0.20", features = ["csr"] }
 yew-hooks = "0.2.0"
 yew-router = "0.17.0"

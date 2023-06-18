@@ -1,13 +1,9 @@
-/* TODO: create custom color theme */
-
+@import "theme-colors";
 @import "../node_modules/bootstrap/scss/bootstrap";
+
 @import "notify";
 @import "utils";
 @import "app";
 
 html { height: 100%; }
 body { height: 100%; }
-
-
-
-

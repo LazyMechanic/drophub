@@ -91,16 +91,16 @@ pub fn room() -> Html {
 
     html! {
         <div class="container-fluid
-                    d-flex
-                    flex-row
                     h-100
-                    p-3
+                    p-0
                     gap-3
-                    bg-body-secondary"
+                    d-flex
+                    flex-row"
         >
             <RoomControl
                 loading={state_handle.loading}
                 room_id={state_handle.room.room_id}
+                room_opts={state_handle.room.options.clone()}
                 clients={
                     state_handle
                         .room
@@ -111,7 +111,7 @@ pub fn room() -> Html {
                 }
                 cur_client={(state_handle.client.id, state_handle.client.role)}
                 invites={state_handle.room.invites.clone()}
-                capacity={state_handle.room.options.capacity}
+                host={state_handle.room.host_id}
             />
             <RoomMediaShare
                 loading={state_handle.loading}

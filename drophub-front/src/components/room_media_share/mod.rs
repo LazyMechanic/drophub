@@ -41,7 +41,7 @@ pub fn room_media_share(props: &Props) -> Html {
     html! {
         <div
             class="container-fluid
-                   bg-body
+                   bg-shade
                    border
                    border-0
                    rounded

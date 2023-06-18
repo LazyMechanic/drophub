@@ -30,7 +30,7 @@ pub fn header(props: &Props) -> Html {
             </span>
             <button
                 class="btn
-                       btn-body
+                       btn-shade
                        ms-auto"
                 type="button"
                 onclick={&props.on_minmax}

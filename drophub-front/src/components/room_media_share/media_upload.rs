@@ -13,15 +13,15 @@ pub fn media_upload(_props: &Props) -> Html {
         >
             <button
                 class="btn
-                       btn-light
+                       btn-shade-10
                        d-flex
                        border
+                       border-0
                        rounded
                        justify-content-center
                        align-items-center"
                 style="height: 100px;
-                       width: 100px;
-                       border-style: dashed !important;"
+                       width: 100px;"
                 type="button"
             >
                 <i class="bi

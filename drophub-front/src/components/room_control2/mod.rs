@@ -7,7 +7,7 @@ mod room_info_modal;
 
 use std::collections::HashMap;
 
-use drophub::{ClientId, InvitePassword, RoomId};
+use drophub::{ClientId, InvitePassword, RoomId, RoomOptions};
 use web_sys::Element;
 use yew::prelude::*;
 
@@ -22,10 +22,11 @@ pub struct Props {
     #[prop_or_default]
     pub loading: bool,
     pub room_id: RoomId,
+    pub room_opts: RoomOptions,
     pub clients: HashMap<ClientId, ClientRole>,
     pub cur_client: (ClientId, ClientRole),
+    pub host: ClientId,
     pub invites: Vec<InvitePassword>,
-    pub capacity: usize,
 }
 
 #[function_component(RoomControl)]
@@ -49,12 +50,9 @@ pub fn room_control(props: &Props) -> Html {
         }
     });
 
-    let mut props = props.clone();
-    props.loading = false;
-
     html! {
         <div class="overflow-scroll-marker
-                    overflow-scroll-marker-body
+                    overflow-scroll-marker-shade
                     flex-grow-0
                     flex-shrink-0
                     border
@@ -67,7 +65,7 @@ pub fn room_control(props: &Props) -> Html {
                        border
                        border-0
                        rounded
-                       bg-body
+                       bg-shade
                        shadow
                        p-3
                        gap-2
@@ -86,17 +84,20 @@ pub fn room_control(props: &Props) -> Html {
                 <RoomInfo
                     loading={props.loading}
                     room_id={props.room_id}
+                    room_opts={props.room_opts.clone()}
+                    host={props.host}
                 />
                 <ClientList
                     loading={props.loading}
                     clients={props.clients.clone()}
                     cur_client={props.cur_client.clone()}
-                    capacity={props.capacity}
+                    capacity={props.room_opts.capacity}
                 />
                 <InviteList
                     loading={props.loading}
+                    room_id={props.room_id}
                     invites={props.invites.clone()}
-                    capacity={props.capacity}
+                    capacity={props.room_opts.capacity}
                     clients_count={props.clients.len()}
                 />
             </div>

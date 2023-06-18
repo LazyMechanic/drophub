@@ -33,9 +33,10 @@ pub fn media_card(props: &Props) -> Html {
         >
             <button
                 class="btn
-                       btn-light
+                       btn-shade-10
                        d-flex
                        border
+                       border-0
                        rounded
                        justify-content-center
                        align-items-center"

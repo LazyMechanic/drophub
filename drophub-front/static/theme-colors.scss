@@ -1,0 +1,143 @@
+@import "../node_modules/bootstrap/scss/functions";
+@import "../node_modules/bootstrap/scss/variables";
+@import "../node_modules/bootstrap/scss/mixins";
+@import "colors";
+
+// Merge color map with Bootstrap's default color map
+$theme-colors: map-merge($theme-colors, $custom-theme-colors);
+
+@each $color, $value in $theme-colors {
+    .link-bg-#{$color} {
+        color: color-contrast($value) if($enable-important-utilities, !important, null);
+        background-color: RGBA(#{to-rgb($value)}, var(--#{$prefix}bg-opacity, 1)) if($enable-important-utilities, !important, null);
+        text-decoration-color: RGBA(var(--#{$prefix}#{$color}-rgb), var(--#{$prefix}link-underline-opacity, 1));
+
+        @if $link-shade-percentage != 0 {
+            &:hover,
+            &:focus {
+                $hover-color: if(color-contrast($value) == $color-contrast-light, shade-color($value, $link-shade-percentage), tint-color($value, $link-shade-percentage));
+                color: RGBA(#{to-rgb($hover-color)}, var(--#{$prefix}link-opacity, 1));
+                text-decoration-color: RGBA(to-rgb($hover-color), var(--#{$prefix}link-underline-opacity, 1));
+            }
+        }
+    }
+
+    .link-contrast-#{$color} {
+        color: color-contrast($value) if($enable-important-utilities, !important, null);
+        text-decoration-color: RGBA(var(--#{$prefix}#{$color}-rgb), var(--#{$prefix}link-underline-opacity, 1));
+
+        @if $link-shade-percentage != 0 {
+            &:hover,
+            &:focus {
+                $hover-color: if(color-contrast($value) == $color-contrast-light, shade-color($value, $link-shade-percentage), tint-color($value, $link-shade-percentage));
+                color: RGBA(#{to-rgb($hover-color)}, var(--#{$prefix}link-opacity, 1));
+                text-decoration-color: RGBA(to-rgb($hover-color), var(--#{$prefix}link-underline-opacity, 1));
+            }
+        }
+    }
+
+    .overflow-scroll-marker-#{$color} {
+        --dh-overflow-scroll-marker-bg: $value;
+    }
+}
+
+@include color-mode(dark) {
+    @each $color, $value in $dark-custom-colors {
+        /* ------------ Colors ------------ */
+
+        .bg-#{$color} {
+            background-color: RGBA(#{to-rgb($value)}, var(--#{$prefix}bg-opacity, 1)) if($enable-important-utilities, !important, null);
+        }
+
+        .text-#{$color} {
+            color: RGBA(#{to-rgb($value)}, 1) if($enable-important-utilities, !important, null);
+        }
+
+        /* ------------ Button ------------ */
+
+        .btn-#{$color} {
+            @include button-variant($value, $value);
+        }
+
+        .btn-outline-#{$color} {
+            @include button-outline-variant($value);
+        }
+
+        /* ------------ Table ------------ */
+
+        @include table-variant($color, $value);
+
+        /* ------------ Alert ------------ */
+
+        .alert-#{$color} {
+            --#{$prefix}alert-color: var(--#{$prefix}#{$color}-text-emphasis);
+            --#{$prefix}alert-bg: var(--#{$prefix}#{$color}-bg-subtle);
+            --#{$prefix}alert-border-color: var(--#{$prefix}#{$color}-border-subtle);
+            --#{$prefix}alert-link-color: var(--#{$prefix}#{$color}-text-emphasis);
+        }
+
+        /* ------------ List ------------ */
+
+        .list-group-item-#{$color} {
+            --#{$prefix}list-group-color: var(--#{$prefix}#{$color}-text-emphasis);
+            --#{$prefix}list-group-bg: var(--#{$prefix}#{$color}-bg-subtle);
+            --#{$prefix}list-group-border-color: var(--#{$prefix}#{$color}-border-subtle);
+            --#{$prefix}list-group-action-hover-color: var(--#{$prefix}emphasis-color);
+            --#{$prefix}list-group-action-hover-bg: var(--#{$prefix}#{$color}-border-subtle);
+            --#{$prefix}list-group-action-active-color: var(--#{$prefix}emphasis-color);
+            --#{$prefix}list-group-action-active-bg: var(--#{$prefix}#{$color}-border-subtle);
+            --#{$prefix}list-group-active-color: var(--#{$prefix}#{$color}-bg-subtle);
+            --#{$prefix}list-group-active-bg: var(--#{$prefix}#{$color}-text-emphasis);
+            --#{$prefix}list-group-active-border-color: var(--#{$prefix}#{$color}-text-emphasis);
+        }
+
+        /* ----------- Border ----------- */
+
+        .border-#{$color} {
+            --bs-border-opacity: 1;
+            border-color: rgba(#{to-rgb($value)}, var(--bs-border-opacity)) !important;
+        }
+
+        /* ----------- Custom ------------ */
+
+        .overflow-scroll-marker-#{$color} {
+            --dh-overflow-scroll-marker-bg: #{$value};
+            --dh-overflow-scroll-marker-bg-rgb: #{to-rgb($value)};
+            --dh-overflow-scroll-marker-border-color: #{$value};
+            --dh-overflow-scroll-marker-border-color-rgb: #{to-rgb($value)};
+        }
+
+        .link-bg-#{$color} {
+            color: color-contrast($value) if($enable-important-utilities, !important, null);
+            background-color: RGBA(#{to-rgb($value)}, var(--#{$prefix}bg-opacity, 1)) if($enable-important-utilities, !important, null);
+            text-decoration-color: RGBA(var(--#{$prefix}#{$color}-rgb), var(--#{$prefix}link-underline-opacity, 1));
+
+            @if $link-shade-percentage != 0 {
+                &:hover,
+                &:focus {
+                    $hover-color: if(color-contrast($value) == $color-contrast-light, shade-color($value, $link-shade-percentage), tint-color($value, $link-shade-percentage));
+                    color: RGBA(#{to-rgb($hover-color)}, var(--#{$prefix}link-opacity, 1));
+                    text-decoration-color: RGBA(#{to-rgb($hover-color)}, var(--#{$prefix}link-underline-opacity, 1));
+                }
+            }
+        }
+
+        .link-contrast-#{$color} {
+            color: color-contrast($value) if($enable-important-utilities, !important, null);
+            text-decoration-color: RGBA(var(--#{$prefix}#{$color}-rgb), var(--#{$prefix}link-underline-opacity, 1));
+
+            @if $link-shade-percentage != 0 {
+                &:hover,
+                &:focus {
+                    $hover-color: if(color-contrast($value) == $color-contrast-light, shade-color($value, $link-shade-percentage), tint-color($value, $link-shade-percentage));
+                    color: RGBA(#{to-rgb($hover-color)}, var(--#{$prefix}link-opacity, 1));
+                    text-decoration-color: RGBA(#{to-rgb($hover-color)}, var(--#{$prefix}link-underline-opacity, 1));
+                }
+            }
+        }
+
+        .text-contrast-#{$color} {
+            color: color-contrast($value) if($enable-important-utilities, !important, null);
+        }
+    }
+}

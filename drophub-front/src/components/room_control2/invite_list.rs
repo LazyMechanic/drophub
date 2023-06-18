@@ -1,13 +1,20 @@
-use drophub::InvitePassword;
+use std::ops::Deref;
+
+use drophub::{InvitePassword, RoomId};
 use web_sys::Element;
 use yew::prelude::*;
 
-use crate::{components::Placeholder, hooks::use_notify, unwrap_notify_ext::UnwrapNotifyExt};
+use crate::{
+    components::{room_control2::invite_modal::InviteModal, Placeholder},
+    hooks::use_notify,
+    unwrap_notify_ext::UnwrapNotifyExt,
+};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
     pub loading: bool,
+    pub room_id: RoomId,
     pub invites: Vec<InvitePassword>,
     pub capacity: usize,
     pub clients_count: usize,
@@ -16,6 +23,8 @@ pub struct Props {
 #[function_component(InviteList)]
 pub fn invite_list(props: &Props) -> Html {
     let notify_manager = use_notify();
+
+    let selected_invite_handle = use_state(String::default);
 
     let icon_node_ref = use_node_ref();
     let btn_node_ref = use_node_ref();
@@ -34,8 +43,11 @@ pub fn invite_list(props: &Props) -> Html {
                 .cast::<Element>()
                 .expect_notify(&notify_manager, "Failed to cast 'NodeRef' to 'Element'");
             btn.class_list()
-                .toggle("btn-collapse")
-                .expect_notify(&notify_manager, "Failed to toggle 'btn-collapse' class");
+                .toggle("btn-shade")
+                .expect_notify(&notify_manager, "Failed to toggle 'btn-shade' class");
+            btn.class_list()
+                .toggle("btn-accent")
+                .expect_notify(&notify_manager, "Failed to toggle 'btn-accent' class");
         }
     });
 
@@ -43,14 +55,21 @@ pub fn invite_list(props: &Props) -> Html {
         .invites
         .iter()
         .map(|invite_password| {
+            let onclick = Callback::from({
+                let selected_invite_handle = selected_invite_handle.clone();
+                let invite_password = invite_password.clone();
+                move |_| selected_invite_handle.set(invite_password.clone())
+            });
+
             html! {
                 <button
                     class="btn
-                           btn-collapse-item-body
+                           btn-shade-10
                            text-start"
                     type="button"
                     data-bs-toggle="modal"
                     data-bs-target="#dh-room-control-invite-modal"
+                    {onclick}
                 >
                     <i class="bi
                               bi-envelope"
@@ -75,7 +94,7 @@ pub fn invite_list(props: &Props) -> Html {
                 html! {
                     <button
                         class="btn
-                               btn-collapse-item-body
+                               btn-shade-20
                                text-center"
                         type="button"
                         disabled={no_more_invites}
@@ -95,7 +114,7 @@ pub fn invite_list(props: &Props) -> Html {
         <>
             <button
                 class="btn
-                       btn-body
+                       btn-shade
                        d-flex
                        flex-row 
                        position-relative"
@@ -140,6 +159,11 @@ pub fn invite_list(props: &Props) -> Html {
                     {invites}
                 </div>
             </div>
+            <InviteModal
+                loading={props.loading}
+                room_id={props.room_id}
+                invite_password={selected_invite_handle.deref().clone()}
+            />
         </>
     }
 }

@@ -44,8 +44,11 @@ pub fn client_list(props: &Props) -> Html {
                 .cast::<Element>()
                 .expect_notify(&notify_manager, "Failed to cast 'NodeRef' to 'Element'");
             btn.class_list()
-                .toggle("btn-collapse")
-                .expect_notify(&notify_manager, "Failed to toggle 'btn-collapse' class");
+                .toggle("btn-shade")
+                .expect_notify(&notify_manager, "Failed to toggle 'btn-shade' class");
+            btn.class_list()
+                .toggle("btn-accent")
+                .expect_notify(&notify_manager, "Failed to toggle 'btn-accent' class");
         }
     });
 
@@ -73,7 +76,7 @@ pub fn client_list(props: &Props) -> Html {
             html! {
                 <button
                     class="btn
-                           btn-collapse-item-body
+                           btn-shade-10
                            text-start"
                     type="button"
                     // TODO: open modal
@@ -98,7 +101,7 @@ pub fn client_list(props: &Props) -> Html {
         <>
             <button
                 class="btn
-                       btn-body
+                       btn-shade
                        d-flex
                        flex-row 
                        position-relative"

@@ -1,0 +1,87 @@
+// Define color variables
+$light-shade-color:     #FFFFFC;
+$light-accent-color:    #9FC2CC;
+$light-brand-color:     #EF8354;
+$dark-brand-color:      #A75C3B;
+$dark-accent-color:     #4F5D75;
+$dark-shade-color:      #212121;
+
+// Common colors
+$common-colors: (
+    "success": #67a26f,
+    "danger":  #d9534f,
+    "warning": #f0ad4e,
+    "info":    #5bc0de,
+    "light":   $light-shade-color,
+    "dark":    $dark-shade-color,
+);
+
+$light-custom-colors: (
+    "shade-10": shade-color($light-shade-color, 10%),
+    "shade-20": shade-color($light-shade-color, 20%),
+    "shade-30": shade-color($light-shade-color, 30%),
+
+    "shade":  $light-shade-color,
+    "accent": $light-accent-color,
+    "brand":  $light-brand-color,
+
+    "primary":   $light-brand-color,
+    "secondary": $light-accent-color,
+);
+
+$dark-custom-colors: (
+    "shade-10": tint-color($dark-shade-color, 10%),
+    "shade-20": tint-color($dark-shade-color, 20%),
+    "shade-30": tint-color($dark-shade-color, 30%),
+
+    "shade":  $dark-shade-color,
+    "accent": $dark-accent-color,
+    "brand":  $dark-brand-color,
+
+    "primary":   $dark-brand-color,
+    "secondary": $dark-accent-color,
+);
+
+$body-color:           map-get($dark-custom-colors, "shade-10");
+$body-bg:              map-get($light-custom-colors, "shade");
+$color-contrast-light: $body-color;
+
+$body-color-dark:     map-get($light-custom-colors, "shade-10");
+$body-bg-dark:        map-get($dark-custom-colors, "shade");
+$color-contrast-dark: $body-color-dark;
+
+// Custom colors
+$custom-colors: (
+    "light-shade-10": map-get($light-custom-colors, "shade-10"),
+    "light-shade-20": map-get($light-custom-colors, "shade-20"),
+    "light-shade-30": map-get($light-custom-colors, "shade-30"),
+
+    "light-shade":  map-get($light-custom-colors, "shade"),
+    "light-accent": map-get($light-custom-colors, "accent"),
+    "light-brand":  map-get($light-custom-colors, "brand"),
+
+    "dark-shade-10": map-get($dark-custom-colors, "shade-10"),
+    "dark-shade-20": map-get($dark-custom-colors, "shade-20"),
+    "dark-shade-30": map-get($dark-custom-colors, "shade-30"),
+
+    "dark-shade":  map-get($dark-custom-colors, "shade"),
+    "dark-accent": map-get($dark-custom-colors, "accent"),
+    "dark-brand":  map-get($dark-custom-colors, "brand"),
+
+    "shade-10": map-get($light-custom-colors, "shade-10"),
+    "shade-20": map-get($light-custom-colors, "shade-20"),
+    "shade-30": map-get($light-custom-colors, "shade-30"),
+
+    "shade":  map-get($light-custom-colors, "shade"),
+    "accent": map-get($light-custom-colors, "accent"),
+    "brand":  map-get($light-custom-colors, "brand"),
+
+    "primary":   map-get($light-custom-colors, "primary"),
+    "secondary": map-get($light-custom-colors, "secondary"),
+);
+
+// Theme
+$custom-theme-colors: map-merge(
+    $common-colors,
+    $custom-colors,
+);
