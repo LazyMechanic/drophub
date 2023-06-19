@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 
 use drophub::ClientId;
+use uuid::Uuid;
 use web_sys::Element;
 use yew::prelude::*;
 
 use crate::{
-    components::Placeholder, hooks::use_notify, routes::room::state::ClientRole,
+    components::{room_control::client_modal::ClientModal, Placeholder},
+    hooks::use_notify,
+    routes::room::state::ClientRole,
     unwrap_notify_ext::UnwrapNotifyExt,
 };
 
@@ -18,14 +21,10 @@ pub struct Props {
     pub capacity: usize,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-struct State {
-    host: ClientId,
-}
-
 #[function_component(ClientList)]
 pub fn client_list(props: &Props) -> Html {
     let notify_manager = use_notify();
+    let selected_client_handle = use_state(|| (Uuid::new_v4(), ClientRole::Guest));
 
     let icon_node_ref = use_node_ref();
     let btn_node_ref = use_node_ref();
@@ -56,6 +55,12 @@ pub fn client_list(props: &Props) -> Html {
         .clients
         .iter()
         .map(|(id, role)| {
+            let onclick = Callback::from({
+                let selected_client_handle = selected_client_handle.clone();
+                let client = (*id, *role);
+                move |_| selected_client_handle.set(client)
+            });
+
             // TODO: highlight all owned files on hover
             let icon_classes = classes! {
                 "bi",
@@ -79,7 +84,9 @@ pub fn client_list(props: &Props) -> Html {
                            btn-shade-10
                            text-start"
                     type="button"
-                    // TODO: open modal
+                    data-bs-toggle="modal"
+                    data-bs-target="#dh-room-control-client-modal"
+                    {onclick}
                 >
                     <i class={icon_classes}></i>
                     <span class="dh-room-control-hidden
@@ -146,6 +153,11 @@ pub fn client_list(props: &Props) -> Html {
                     {clients}
                 </div>
             </div>
+            <ClientModal
+                loading={props.loading}
+                selected_client={*selected_client_handle}
+                cur_client={props.cur_client}
+            />
         </>
     }
 }

@@ -1,4 +1,5 @@
 mod client_list;
+mod client_modal;
 mod header;
 mod invite_list;
 mod invite_modal;
