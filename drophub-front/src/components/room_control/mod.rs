@@ -53,11 +53,10 @@ pub fn room_control(props: &Props) -> Html {
     html! {
         <div class="overflow-scroll-marker
                     overflow-scroll-marker-shade
-                    flex-grow-0
-                    flex-shrink-0
                     border
                     border-0
-                    rounded"
+                    rounded
+                    flex-shrink-1"
         >
             <div
                 class="d-flex

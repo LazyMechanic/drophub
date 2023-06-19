@@ -43,7 +43,8 @@ pub fn room_media_share(props: &Props) -> Html {
                     overflow-scroll-marker-shade
                     border
                     border-0
-                    rounded"
+                    rounded
+                    w-100"
         >
             <div
                 class="container-fluid
