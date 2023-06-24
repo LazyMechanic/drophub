@@ -1,27 +1,22 @@
 use std::borrow::{Borrow, BorrowMut};
 
-use drophub::{ClientId, FileId, RoomError};
+use drophub::{AccessToken, ClientId, ClientRole, EntityId, RoomError};
 use serde_json::json;
 
-use crate::{
-    jwt::{ClientRole, Jwt},
-    server::room::types::Room,
-};
+use crate::server::room::types::Room;
 
 /// Needs to drop after checks because validator holds lock to room.
 #[derive(Debug)]
 pub struct RoomValidator<'a, R> {
-    jwt: &'a Jwt,
+    token: &'a AccessToken,
     room: R,
 }
 
 pub trait RoomValidate {
     fn validate_revoke_invite(&self) -> Result<(), RoomError>;
     fn validate_kick(&self, client_id: ClientId) -> Result<(), RoomError>;
-    fn validate_announce_file(&self, file_id: FileId) -> Result<(), RoomError>;
-    fn validate_remove_file(&self, file_id: FileId) -> Result<(), RoomError>;
-    fn validate_upload_file(&self) -> Result<(), RoomError>;
-    fn validate_sub_download(&self, file_id: FileId) -> Result<(), RoomError>;
+    fn validate_announce_entity(&self, entity_id: EntityId) -> Result<(), RoomError>;
+    fn validate_remove_entity(&self, entity_id: EntityId) -> Result<(), RoomError>;
 }
 
 pub trait RoomMutValidate: RoomValidate {
@@ -29,8 +24,8 @@ pub trait RoomMutValidate: RoomValidate {
 }
 
 impl<'a, R> RoomValidator<'a, R> {
-    pub fn new(jwt: &'a Jwt, room: R) -> Self {
-        Self { jwt, room }
+    pub fn new(token: &'a AccessToken, room: R) -> Self {
+        Self { token, room }
     }
 }
 
@@ -39,43 +34,27 @@ where
     R: Borrow<Room>,
 {
     fn check_host_only(&self) -> Result<(), RoomError> {
-        if self.jwt.access_token.role != ClientRole::Host {
+        if self.token.role != ClientRole::Host {
             return Err(RoomError::PermissionDenied {
-                client_id: self.jwt.access_token.client_id,
-                room_id: self.jwt.access_token.room_id,
-                details: Some(json!({ "client_role": self.jwt.access_token.role })),
+                client_id: self.token.client_id,
+                room_id: self.token.room_id,
+                details: Some(json!({ "client_role": self.token.role })),
             });
         }
 
         Ok(())
     }
 
-    fn check_file_owner(&self, file_id: FileId) -> Result<(), RoomError> {
+    fn check_entity_owner(&self, entity_id: EntityId) -> Result<(), RoomError> {
         if !self
             .room
             .borrow()
-            .is_file_owner(file_id, self.jwt.access_token.client_id)?
+            .is_entity_owner(entity_id, self.token.client_id)?
         {
             return Err(RoomError::PermissionDenied {
-                client_id: self.jwt.access_token.client_id,
-                room_id: self.jwt.access_token.room_id,
-                details: Some(json!({ "file_id": file_id })),
-            });
-        }
-
-        Ok(())
-    }
-
-    fn check_download_file(&self, file_id: FileId) -> Result<(), RoomError> {
-        if self
-            .room
-            .borrow()
-            .is_file_owner(file_id, self.jwt.access_token.client_id)?
-        {
-            return Err(RoomError::DownloadYourOwnFileNotAllowed {
-                client_id: self.jwt.access_token.client_id,
-                file_id,
-                room_id: self.jwt.access_token.room_id,
+                client_id: self.token.client_id,
+                room_id: self.token.room_id,
+                details: Some(json!({ "entity_id": entity_id })),
             });
         }
 
@@ -84,10 +63,10 @@ where
 
     fn check_kick_yourself(&self, client_id: ClientId) -> Result<(), RoomError> {
         // TODO: kick yourself and switch roles with a random client?
-        if self.jwt.access_token.client_id == client_id {
+        if self.token.client_id == client_id {
             return Err(RoomError::PermissionDenied {
-                client_id: self.jwt.access_token.client_id,
-                room_id: self.jwt.access_token.room_id,
+                client_id: self.token.client_id,
+                room_id: self.token.room_id,
                 details: Some(json!("Host cannot kick itself")),
             });
         }
@@ -95,10 +74,10 @@ where
         Ok(())
     }
 
-    fn check_file_exists(&self, file_id: FileId) -> Result<(), RoomError> {
+    fn check_entity_exists(&self, file_id: EntityId) -> Result<(), RoomError> {
         if self.room.borrow().is_file_exists(file_id) {
-            return Err(RoomError::FileAlreadyExists {
-                file_id,
+            return Err(RoomError::EntityAlreadyExists {
+                entity_id: file_id,
                 room_id: self.room.borrow().id(),
             });
         }
@@ -114,7 +93,7 @@ where
     fn check_capacity(&mut self) -> Result<(), RoomError> {
         if self.room.borrow_mut().is_full() {
             return Err(RoomError::RoomIsFull {
-                room_id: self.jwt.access_token.room_id,
+                room_id: self.token.room_id,
                 capacity: self.room.borrow().capacity(),
             });
         }
@@ -138,22 +117,13 @@ where
         Ok(())
     }
 
-    fn validate_announce_file(&self, file_id: FileId) -> Result<(), RoomError> {
-        self.check_file_exists(file_id)?;
+    fn validate_announce_entity(&self, entity_id: EntityId) -> Result<(), RoomError> {
+        self.check_entity_exists(entity_id)?;
         Ok(())
     }
 
-    fn validate_remove_file(&self, file_id: FileId) -> Result<(), RoomError> {
-        self.check_file_owner(file_id)?;
-        Ok(())
-    }
-
-    fn validate_upload_file(&self) -> Result<(), RoomError> {
-        Ok(())
-    }
-
-    fn validate_sub_download(&self, file_id: FileId) -> Result<(), RoomError> {
-        self.check_download_file(file_id)?;
+    fn validate_remove_entity(&self, file_id: EntityId) -> Result<(), RoomError> {
+        self.check_entity_owner(file_id)?;
         Ok(())
     }
 }

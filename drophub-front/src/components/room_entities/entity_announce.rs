@@ -3,8 +3,8 @@ use yew::prelude::*;
 #[derive(Debug, Clone, Eq, PartialEq, Properties)]
 pub struct Props {}
 
-#[function_component(MediaUpload)]
-pub fn media_upload(_props: &Props) -> Html {
+#[function_component(EntityAnnounce)]
+pub fn entity_announce(_props: &Props) -> Html {
     html! {
         <div class="col
                     d-flex

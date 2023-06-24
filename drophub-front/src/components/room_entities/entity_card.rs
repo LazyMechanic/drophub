@@ -1,3 +1,4 @@
+use drophub::{EntityId, EntityKind, EntityMeta};
 use yew::prelude::*;
 
 use crate::components::Placeholder;
@@ -6,25 +7,19 @@ use crate::components::Placeholder;
 pub struct Props {
     #[prop_or_default]
     pub loading: bool,
-    pub kind: MediaKind,
-    pub name: String,
+    pub id: EntityId,
+    pub meta: EntityMeta,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum MediaKind {
-    File,
-}
-
-impl MediaKind {
-    fn icon(&self) -> Html {
-        match self {
-            MediaKind::File => html! { <i class="bi bi-file-earmark"></i> },
-        }
+fn icon(kind: EntityKind) -> Html {
+    match kind {
+        EntityKind::File => html! { <i class="bi bi-file-earmark"></i> },
+        EntityKind::Text => html! { <i class="bi bi-text-left"></i> },
     }
 }
 
-#[function_component(MediaCard)]
-pub fn media_card(props: &Props) -> Html {
+#[function_component(EntityCard)]
+pub fn entity_card(props: &Props) -> Html {
     html! {
         <div class="d-flex
                     flex-column
@@ -44,7 +39,7 @@ pub fn media_card(props: &Props) -> Html {
                        width: 100px;"
                 type="button"
             >
-                {props.kind.icon()}
+                {icon(props.meta.kind())}
             </button>
             <div
                 class="text-truncate"
@@ -52,7 +47,7 @@ pub fn media_card(props: &Props) -> Html {
             >
                 <Placeholder<String>
                     enabled={props.loading}
-                    content={props.name.clone()}
+                    content={props.meta.name().to_owned()}
                 />
             </div>
         </div>

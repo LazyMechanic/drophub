@@ -1,6 +1,5 @@
 mod cli;
 mod config;
-mod jwt;
 mod server;
 #[cfg(test)]
 mod test_utils;

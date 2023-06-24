@@ -3,7 +3,7 @@ pub mod state;
 
 use std::{collections::HashMap, ops::Deref, rc::Rc, str::FromStr};
 
-use drophub::{ClientEvent, InvitePassword, RoomId, RoomOptions, RoomRpcClient};
+use drophub::{InvitePassword, RoomEvent, RoomId, RoomOptions, RoomRpcClient};
 use jsonrpsee::core::client::Subscription;
 use serde::{Deserialize, Deserializer, Serialize};
 use yew::prelude::*;
@@ -11,7 +11,7 @@ use yew_hooks::use_async;
 use yew_router::prelude::*;
 
 use crate::{
-    components::{RoomControl, RoomMediaShare},
+    components::{RoomControl, RoomEntities},
     error::{Error, ShareError},
     hooks::{use_notify, use_rpc, NotifyProps},
     routes::{
@@ -99,23 +99,23 @@ pub fn room() -> Html {
         >
             <RoomControl
                 loading={state_handle.loading}
-                room_id={state_handle.room.room_id}
+                room_id={state_handle.room.id}
                 room_opts={state_handle.room.options.clone()}
                 clients={
                     state_handle
                         .room
                         .clients
                         .iter()
-                        .map(|id| (*id, if *id == state_handle.room.host_id { ClientRole::Host } else { ClientRole::Guest } ))
+                        .map(|id| (*id, if *id == state_handle.room.host { ClientRole::Host } else { ClientRole::Guest } ))
                         .collect::<HashMap<_, _>>()
                 }
                 cur_client={(state_handle.client.id, state_handle.client.role)}
                 invites={state_handle.room.invites.clone()}
-                host={state_handle.room.host_id}
+                host={state_handle.room.host}
             />
-            <RoomMediaShare
+            <RoomEntities
                 loading={state_handle.loading}
-                medias={state_handle.room.files.clone()}
+                entities={state_handle.room.entities.clone()}
             />
         </div>
     }
@@ -143,11 +143,6 @@ async fn handle_room_update(
                 })
                 .await
                 .map_err(Error::from)?;
-
-            let mut s = state_handle.deref().clone();
-            s.client.role = ClientRole::Host;
-            state_handle.set(s);
-
             handle_subscribe(sub, state_handle).await
         }
         Query::Connect(ActionConnect {
@@ -158,35 +153,34 @@ async fn handle_room_update(
                 .connect(room_id, invite_password)
                 .await
                 .map_err(Error::from)?;
-
-            let mut s = state_handle.deref().clone();
-            s.client.role = ClientRole::Guest;
-            state_handle.set(s);
-
             handle_subscribe(sub, state_handle).await
         }
     }
 }
 
 async fn handle_subscribe(
-    mut sub: Subscription<ClientEvent>,
+    mut sub: Subscription<RoomEvent>,
     state_handle: UseStateHandle<State>,
 ) -> Result<(), ShareError> {
     while let Some(maybe_event) = sub.next().await {
         let event = maybe_event.map_err(Error::from)?;
         match event {
-            ClientEvent::Init(jwt, client_id) => {
+            RoomEvent::Init {
+                token,
+                client_id,
+                client_role,
+            } => {
                 let mut s = state_handle.deref().clone();
-                s.client.jwt = jwt;
+                s.client.token = token;
                 s.client.id = client_id;
+                s.client.role = client_role;
                 state_handle.set(s);
             }
-            ClientEvent::RoomInfo(room_info) => {
+            RoomEvent::RoomInfo(room_info) => {
                 let mut s = state_handle.deref().clone();
                 s.room = room_info;
                 state_handle.set(s);
             }
-            ClientEvent::UploadRequest(_) => todo!("remove upload"),
         }
     }
 

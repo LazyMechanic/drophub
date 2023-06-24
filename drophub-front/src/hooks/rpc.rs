@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use drophub::ClientEvent;
+use drophub::RoomEvent;
 use jsonrpsee::core::client::Subscription;
 use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;

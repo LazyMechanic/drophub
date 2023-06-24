@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     fmt::{Debug, Formatter},
     ops::Add,
     sync::atomic::{AtomicU64, Ordering},
@@ -8,27 +8,26 @@ use std::{
 
 use anyhow::anyhow;
 use drophub::{
-    ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InvitePassword, RoomError,
-    RoomId, RoomInfo, RoomOptions, UploadRequest,
+    new_entity_id, ClientId, ClientRole, EntityId, EntityMeta, Invite, InvitePassword, RoomError,
+    RoomId, RoomInfo, RoomOptions,
 };
+use indexmap::IndexMap;
 use passwords::PasswordGenerator;
 use replace_with::replace_with_or_default;
 use time::OffsetDateTime;
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::broadcast;
 use ttl_cache::TtlCache;
 use uuid::Uuid;
 
-use crate::{config::RoomConfig, jwt::ClientRole};
+use crate::config::RoomConfig;
 
 pub struct Room {
     id: RoomId,
     host_id: ClientId,
-    clients: HashMap<ClientId, Client>,
-    files: HashMap<FileId, File>,
+    clients: IndexMap<ClientId, Client>,
+    entities: IndexMap<EntityId, Entity>,
     invites: TtlCache<InvitePassword, Invite>,
-    downloads: HashMap<DownloadProcId, DownloadProc>,
     options: RoomOptions,
-    block_size: usize,
     invite_ttl: Duration,
     info_tx: broadcast::Sender<RoomInfo>,
     invite_gen: PasswordGenerator,
@@ -40,11 +39,9 @@ impl Debug for Room {
             .field("id", &self.id)
             .field("host_id", &self.host_id)
             .field("clients", &self.clients)
-            .field("files", &self.files)
+            .field("entities", &self.entities)
             .field("invites", &"{ ... }")
-            .field("downloads", &self.downloads)
             .field("options", &self.options)
-            .field("block_size", &self.block_size)
             .field("invite_ttl", &self.invite_ttl)
             .field("info_tx", &"{ ... }")
             .field("invite_gen", &self.invite_gen)
@@ -60,15 +57,13 @@ impl Room {
             id: Self::next_id(),
             host_id: host.id,
             clients: {
-                let mut c = HashMap::new();
+                let mut c = IndexMap::new();
                 c.insert(host.id, host);
                 c
             },
-            files: Default::default(),
+            entities: Default::default(),
             invites: TtlCache::new(usize::MAX),
-            downloads: Default::default(),
             options,
-            block_size: cfg.block_size,
             invite_ttl: cfg.invite_ttl,
             info_tx,
             invite_gen: PasswordGenerator {
@@ -93,7 +88,7 @@ impl Room {
     }
 
     pub fn capacity(&self) -> usize {
-        self.capacity
+        self.options.capacity
     }
 
     pub fn broadcast_info(&mut self) -> Result<(), RoomError> {
@@ -120,8 +115,8 @@ impl Room {
 
             if !self.invites.contains_key(&invite_password) {
                 let invite = Invite {
-                    password: invite_password.clone(),
                     room_id: self.id,
+                    password: invite_password.clone(),
                     exp: OffsetDateTime::now_utc().add(self.invite_ttl),
                 };
                 // TODO: remove invite forced after ttl and broadcast updated info
@@ -135,31 +130,34 @@ impl Room {
     pub fn revoke_invite(&mut self, invite_id: InvitePassword) -> Result<(), RoomError> {
         if self.invites.remove(&invite_id).is_none() {
             return Err(RoomError::InviteNotFound {
-                invite_password: invite_id,
                 room_id: self.id,
+                invite_password: invite_id,
             });
         }
 
         Ok(())
     }
 
-    pub fn add_file(&mut self, file: File) -> Result<(), RoomError> {
-        let client = self.get_client_mut(file.owner)?;
+    pub fn add_entity(&mut self, entity: Entity) -> Result<(), RoomError> {
+        let client = self.get_client_mut(entity.owner)?;
 
-        client.files.insert(file.id);
-        self.files.insert(file.id, file);
+        client.files.insert(entity.id);
+        self.entities.insert(entity.id, entity);
 
         Ok(())
     }
 
-    pub fn remove_file(&mut self, file_id: FileId) -> Result<(), RoomError> {
-        let file = self.files.remove(&file_id).ok_or(RoomError::FileNotFound {
-            file_id,
-            room_id: self.id,
-        })?;
+    pub fn remove_entity(&mut self, entity_id: EntityId) -> Result<(), RoomError> {
+        let file = self
+            .entities
+            .remove(&entity_id)
+            .ok_or(RoomError::EntityNotFound {
+                room_id: self.id,
+                entity_id,
+            })?;
 
         let client = self.get_client_mut(file.owner)?;
-        client.files.remove(&file_id);
+        client.files.remove(&entity_id);
 
         Ok(())
     }
@@ -188,90 +186,31 @@ impl Room {
 
         // Remove all client-owned files
         // TODO: don't delete the file if any other client has it
-        replace_with_or_default(&mut self.files, |room_files| {
+        replace_with_or_default(&mut self.entities, |room_files| {
             room_files
                 .into_iter()
-                .filter(|(_, file)| file.owner != client_id)
+                .filter(|(_, entity)| entity.owner != client_id)
                 .collect()
         });
         Ok(())
     }
 
-    pub async fn send_file(
-        &mut self,
-        file_data: FileData,
-        download_proc_id: DownloadProcId,
-    ) -> Result<(), RoomError> {
-        let block_size = self.block_size;
-        let download_proc = self.get_download_proc_mut(download_proc_id)?;
-
-        if file_data.len() > block_size
-            || (file_data.len() < block_size && !download_proc.is_last_block())
-        {
-            return Err(RoomError::InvalidFileBlockSize {
-                file_id: download_proc.file_id,
-                recv_block_size: file_data.len(),
-                exp_block_size: block_size,
-                room_id: self.id,
-            });
-        }
-
-        let status = download_proc.send_data(file_data).await?;
-
-        match status {
-            FileStatus::InProcess { next_req } => {
-                let file_id = download_proc.file_id;
-                let file = self.get_file(file_id)?;
-                let file_owner = self.get_client(file.owner)?;
-                file_owner.req_upload(next_req)?;
-            }
-            FileStatus::FullUploaded => {
-                self.downloads.remove(&download_proc_id);
-            }
-        }
-
-        Ok(())
+    pub fn is_entity_owner(
+        &self,
+        entity_id: EntityId,
+        client_id: ClientId,
+    ) -> Result<bool, RoomError> {
+        let entity = self.get_entity(entity_id)?;
+        Ok(client_id == entity.owner)
     }
 
-    pub fn start_download_proc(
-        &mut self,
-        file_id: FileId,
-    ) -> Result<(DownloadProcId, mpsc::Receiver<FileData>), RoomError> {
-        let file = self.get_file(file_id)?;
-        let file_owner = self.get_client(file.owner)?;
-
-        let (data_tx, data_rx) = mpsc::channel(1);
-        let download_proc = DownloadProc::new(file_id, file.meta.size, self.block_size, data_tx);
-        tracing::info!(?download_proc, "Init download process");
-
-        let download_proc_id = download_proc.id;
-        file_owner.req_upload(UploadRequest {
-            download_proc_id,
-            file_id,
-            block_idx: 0,
-        })?;
-
-        self.downloads.insert(download_proc.id, download_proc);
-
-        Ok((download_proc_id, data_rx))
-    }
-
-    pub fn stop_download_proc(&mut self, download_proc_id: DownloadProcId) {
-        self.downloads.remove(&download_proc_id);
-    }
-
-    pub fn is_file_owner(&self, file_id: FileId, client_id: ClientId) -> Result<bool, RoomError> {
-        let file = self.get_file(file_id)?;
-        Ok(client_id == file.owner)
-    }
-
-    pub fn is_file_exists(&self, file_id: FileId) -> bool {
-        self.files.contains_key(&file_id)
+    pub fn is_file_exists(&self, file_id: EntityId) -> bool {
+        self.entities.contains_key(&file_id)
     }
 
     pub fn is_full(&mut self) -> bool {
         // TODO: optimize `self.invites.iter().count()`
-        self.invites.iter().count() + self.clients.len() >= self.capacity
+        self.invites.iter().count() + self.clients.len() >= self.options.capacity
     }
 
     fn next_id() -> RoomId {
@@ -281,10 +220,10 @@ impl Room {
 
     fn info(&mut self) -> RoomInfo {
         RoomInfo {
-            room_id: self.id,
-            host_id: self.host_id,
-            files: self
-                .files
+            id: self.id,
+            host: self.host_id,
+            entities: self
+                .entities
                 .iter()
                 .map(|(&file_id, file)| (file_id, file.meta.clone()))
                 .collect(),
@@ -302,31 +241,12 @@ impl Room {
         }
     }
 
-    fn get_file(&self, file_id: FileId) -> Result<&File, RoomError> {
-        self.files.get(&file_id).ok_or(RoomError::FileNotFound {
-            file_id,
-            room_id: self.id,
-        })
-    }
-
-    fn get_download_proc_mut(
-        &mut self,
-        download_proc_id: DownloadProcId,
-    ) -> Result<&mut DownloadProc, RoomError> {
-        self.downloads
-            .get_mut(&download_proc_id)
-            .ok_or(RoomError::DownloadProcessNotFound {
-                download_proc_id,
+    fn get_entity(&self, entity_id: EntityId) -> Result<&Entity, RoomError> {
+        self.entities
+            .get(&entity_id)
+            .ok_or(RoomError::EntityNotFound {
                 room_id: self.id,
-            })
-    }
-
-    fn get_client(&self, client_id: ClientId) -> Result<&Client, RoomError> {
-        self.clients
-            .get(&client_id)
-            .ok_or(RoomError::ClientNotFound {
-                client_id,
-                room_id: self.id,
+                entity_id,
             })
     }
 
@@ -334,8 +254,8 @@ impl Room {
         self.clients
             .get_mut(&client_id)
             .ok_or(RoomError::ClientNotFound {
-                client_id,
                 room_id: self.id,
+                client_id,
             })
     }
 }
@@ -344,17 +264,15 @@ impl Room {
 pub struct Client {
     id: ClientId,
     role: ClientRole,
-    files: HashSet<FileId>,
-    upload_tx: mpsc::UnboundedSender<UploadRequest>,
+    files: HashSet<EntityId>,
 }
 
 impl Client {
-    pub fn new(role: ClientRole, upload_tx: mpsc::UnboundedSender<UploadRequest>) -> Self {
+    pub fn new(role: ClientRole) -> Self {
         Self {
             id: Self::next_id(),
             role,
             files: Default::default(),
-            upload_tx,
         }
     }
 
@@ -366,99 +284,28 @@ impl Client {
         self.role
     }
 
-    fn req_upload(&self, req: UploadRequest) -> Result<(), RoomError> {
-        self.upload_tx
-            .send(req)
-            .map_err(|_| anyhow!("Upload request channel closed").into())
-    }
-
     fn next_id() -> ClientId {
         Uuid::new_v4()
     }
 }
 
 #[derive(Debug)]
-pub struct File {
-    id: FileId,
-    meta: FileMeta,
+pub struct Entity {
+    id: EntityId,
+    meta: EntityMeta,
     owner: ClientId,
 }
 
-impl File {
-    pub fn new(meta: FileMeta, owner: ClientId) -> Self {
+impl Entity {
+    pub fn new(owner: ClientId, meta: EntityMeta) -> Self {
         Self {
-            id: meta.checksum,
+            id: new_entity_id(owner, meta.name()),
             meta,
             owner,
         }
     }
 
-    pub fn id(&self) -> FileId {
+    pub fn id(&self) -> EntityId {
         self.id
     }
-}
-
-#[derive(Debug)]
-struct DownloadProc {
-    id: DownloadProcId,
-    file_id: FileId,
-    next_block_idx: usize,
-    blocks_count: usize,
-    data_tx: mpsc::Sender<FileData>,
-}
-
-impl DownloadProc {
-    fn new(
-        file_id: FileId,
-        file_size: usize,
-        block_size: usize,
-        data_tx: mpsc::Sender<FileData>,
-    ) -> Self {
-        Self {
-            id: Self::next_id(),
-            file_id,
-            next_block_idx: 0,
-            blocks_count: (file_size + block_size - 1) / block_size,
-            data_tx,
-        }
-    }
-
-    fn is_last_block(&self) -> bool {
-        self.next_block_idx + 1 == self.blocks_count
-    }
-
-    async fn send_data(&mut self, file_data: FileData) -> Result<FileStatus, RoomError> {
-        if self.next_block_idx == self.blocks_count {
-            return Ok(FileStatus::FullUploaded);
-        }
-
-        self.data_tx
-            .send(file_data)
-            .await
-            .map_err(|_| anyhow!("Data channel closed"))?;
-
-        self.next_block_idx += 1;
-
-        if self.next_block_idx == self.blocks_count {
-            Ok(FileStatus::FullUploaded)
-        } else {
-            Ok(FileStatus::InProcess {
-                next_req: UploadRequest {
-                    download_proc_id: self.id,
-                    file_id: self.file_id,
-                    block_idx: self.next_block_idx,
-                },
-            })
-        }
-    }
-
-    fn next_id() -> DownloadProcId {
-        Uuid::new_v4()
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-enum FileStatus {
-    InProcess { next_req: UploadRequest },
-    FullUploaded,
 }

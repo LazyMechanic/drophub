@@ -1,6 +1,7 @@
-use std::collections::HashMap;
-
-use drophub::{ClientId, FileMeta, JwtEncoded, RoomInfo, RoomOptions};
+use drophub::{
+    AccessTokenEncoded, ClientId, ClientRole, EntityMeta, FileMeta, RoomInfo, RoomOptions, TextMeta,
+};
+use indexmap::IndexMap;
 use lazy_static::lazy_static;
 use uuid::Uuid;
 
@@ -34,57 +35,55 @@ impl State {
                 let client_id = Uuid::new_v4();
                 State {
                     client: ClientInfo {
-                        jwt: JwtEncoded {
-                            access_token: "".into(),
-                            refresh_token: "".into(),
-                        },
+                        token: "".into(),
                         id: client_id,
                         role: ClientRole::Host,
                     },
                     room: RoomInfo {
-                        room_id: 123456,
-                        host_id: client_id,
-                        files: {
-                            let mut f = HashMap::new();
+                        id: 123456,
+                        host: client_id,
+                        entities: {
+                            let mut f = IndexMap::new();
                             f.insert(
                                 73532627,
-                                FileMeta {
+                                EntityMeta::File(FileMeta {
                                     name: "text.txt".into(),
                                     size: 256,
-                                    checksum: 73532627,
-                                },
+                                }),
                             );
                             f.insert(
                                 12512517,
-                                FileMeta {
+                                EntityMeta::File(FileMeta {
                                     name: "movie.mp4".into(),
                                     size: 521425,
-                                    checksum: 12512517,
-                                },
+                                }),
                             );
                             f.insert(
                                 68854343,
-                                FileMeta {
+                                EntityMeta::File(FileMeta {
                                     name: "music.mp3".into(),
                                     size: 33521,
-                                    checksum: 68854343,
-                                },
+                                }),
                             );
                             f.insert(
                                 157899765,
-                                FileMeta {
+                                EntityMeta::File(FileMeta {
                                     name: "word.doc".into(),
                                     size: 14512,
-                                    checksum: 157899765,
-                                },
+                                }),
                             );
                             f.insert(
                                 678534342,
-                                FileMeta {
+                                EntityMeta::File(FileMeta {
                                     name: "image.png".into(),
                                     size: 21512,
-                                    checksum: 678534342,
-                                },
+                                }),
+                            );
+                            f.insert(
+                                678534342,
+                                EntityMeta::Text(TextMeta {
+                                    name: "text".into(),
+                                }),
                             );
                             f
                         },
@@ -116,57 +115,55 @@ impl State {
                 let host_id = Uuid::new_v4();
                 State {
                     client: ClientInfo {
-                        jwt: JwtEncoded {
-                            access_token: "".into(),
-                            refresh_token: "".into(),
-                        },
+                        token: "".into(),
                         id: client_id,
                         role: ClientRole::Host,
                     },
                     room: RoomInfo {
-                        room_id: 123456,
-                        host_id: host_id,
-                        files: {
-                            let mut f = HashMap::new();
+                        id: 123456,
+                        host: host_id,
+                        entities: {
+                            let mut f = IndexMap::new();
                             f.insert(
                                 73532627,
-                                FileMeta {
+                                EntityMeta::File(FileMeta {
                                     name: "text.txt".into(),
                                     size: 256,
-                                    checksum: 73532627,
-                                },
+                                }),
                             );
                             f.insert(
                                 12512517,
-                                FileMeta {
+                                EntityMeta::File(FileMeta {
                                     name: "movie.mp4".into(),
                                     size: 521425,
-                                    checksum: 12512517,
-                                },
+                                }),
                             );
                             f.insert(
                                 68854343,
-                                FileMeta {
+                                EntityMeta::File(FileMeta {
                                     name: "music.mp3".into(),
                                     size: 33521,
-                                    checksum: 68854343,
-                                },
+                                }),
                             );
                             f.insert(
                                 157899765,
-                                FileMeta {
+                                EntityMeta::File(FileMeta {
                                     name: "word.doc".into(),
                                     size: 14512,
-                                    checksum: 157899765,
-                                },
+                                }),
                             );
                             f.insert(
                                 678534342,
-                                FileMeta {
+                                EntityMeta::File(FileMeta {
                                     name: "image.png".into(),
                                     size: 21512,
-                                    checksum: 678534342,
-                                },
+                                }),
+                            );
+                            f.insert(
+                                678534342,
+                                EntityMeta::Text(TextMeta {
+                                    name: "text".into(),
+                                }),
                             );
                             f
                         },
@@ -194,13 +191,7 @@ impl State {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientInfo {
-    pub jwt: JwtEncoded,
+    pub token: AccessTokenEncoded,
     pub id: ClientId,
     pub role: ClientRole,
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum ClientRole {
-    Host,
-    Guest,
 }

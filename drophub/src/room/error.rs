@@ -1,12 +1,11 @@
 use jsonrpsee::types::{ErrorObject, ErrorObjectOwned};
 use serde::de::Error;
 
-use crate::{ClientId, DownloadProcId, FileId, InvitePassword, RoomId};
+use crate::{ClientId, EntityId, InvitePassword, RoomId};
 
 pub const COMMON_CODE: i32 = -40000;
 pub const NOT_FOUND_CODE: i32 = -40001;
 pub const PERMISSION_DENIED_CODE: i32 = -40002;
-pub const INVALID_FILE_BLOCK_SIZE_CODE: i32 = -40003;
 
 #[derive(Debug, thiserror::Error, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind")]
@@ -15,47 +14,41 @@ pub enum RoomError {
     RoomNotFound { room_id: RoomId },
     #[error("Client not found")]
     ClientNotFound {
-        client_id: ClientId,
         room_id: RoomId,
+        client_id: ClientId,
     },
     #[error("Invite not found")]
     InviteNotFound {
+        room_id: RoomId,
         invite_password: InvitePassword,
-        room_id: RoomId,
     },
-    #[error("File not found")]
-    FileNotFound { file_id: FileId, room_id: RoomId },
-    #[error("Download process not found")]
-    DownloadProcessNotFound {
-        download_proc_id: DownloadProcId,
+    #[error("Entity not found")]
+    EntityNotFound {
         room_id: RoomId,
+        entity_id: EntityId,
     },
     #[error("Permission denied")]
     PermissionDenied {
-        client_id: ClientId,
         room_id: RoomId,
+        client_id: ClientId,
         details: Option<serde_json::Value>,
     },
     #[error("Room is full")]
     RoomIsFull { room_id: RoomId, capacity: usize },
-    #[error("Download your own file are not allowed")]
-    DownloadYourOwnFileNotAllowed {
-        client_id: ClientId,
-        file_id: FileId,
+    #[error("Entity already exists")]
+    EntityAlreadyExists {
         room_id: RoomId,
-    },
-    #[error("File already exists")]
-    FileAlreadyExists { file_id: FileId, room_id: RoomId },
-    #[error("Invalid file block size")]
-    InvalidFileBlockSize {
-        file_id: FileId,
-        recv_block_size: usize,
-        exp_block_size: usize,
-        room_id: RoomId,
+        entity_id: EntityId,
     },
     #[error("Other error")]
     #[serde(with = "serde_other_error")]
     Other(#[from] anyhow::Error),
+}
+
+impl From<jsonwebtoken::errors::Error> for RoomError {
+    fn from(f: jsonwebtoken::errors::Error) -> Self {
+        RoomError::Other(f.into())
+    }
 }
 
 impl From<RoomError> for ErrorObjectOwned {
@@ -84,13 +77,10 @@ impl RoomError {
             RoomError::RoomNotFound { .. } => NOT_FOUND_CODE,
             RoomError::ClientNotFound { .. } => NOT_FOUND_CODE,
             RoomError::InviteNotFound { .. } => NOT_FOUND_CODE,
-            RoomError::FileNotFound { .. } => NOT_FOUND_CODE,
-            RoomError::DownloadProcessNotFound { .. } => NOT_FOUND_CODE,
+            RoomError::EntityNotFound { .. } => NOT_FOUND_CODE,
             RoomError::PermissionDenied { .. } => PERMISSION_DENIED_CODE,
             RoomError::RoomIsFull { .. } => COMMON_CODE,
-            RoomError::DownloadYourOwnFileNotAllowed { .. } => COMMON_CODE,
-            RoomError::FileAlreadyExists { .. } => COMMON_CODE,
-            RoomError::InvalidFileBlockSize { .. } => INVALID_FILE_BLOCK_SIZE_CODE,
+            RoomError::EntityAlreadyExists { .. } => COMMON_CODE,
             RoomError::Other(_) => COMMON_CODE,
         }
     }

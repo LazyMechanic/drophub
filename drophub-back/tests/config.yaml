@@ -3,8 +3,6 @@ server:
 
 room:
   jwt:
-    token_secret: "12345"
-#    access_token_ttl: "5s"
-#    refresh_token_ttl: "5s"
+    secret: "12345"
+#    ttl: "5s"
   invite_ttl: "5m"
-  #block_size: 8192

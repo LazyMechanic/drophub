@@ -5,8 +5,8 @@ use jsonrpsee::proc_macros::rpc;
 #[cfg(feature = "rpc-server")]
 use crate::RoomError;
 use crate::{
-    ClientEvent, ClientId, DownloadProcId, FileData, FileId, FileMeta, Invite, InvitePassword,
-    JwtEncoded, RoomId, RoomOptions,
+    AccessTokenEncoded, ClientId, EntityId, EntityMeta, Invite, InvitePassword, RoomEvent, RoomId,
+    RoomOptions,
 };
 
 #[cfg_attr(
@@ -14,62 +14,57 @@ use crate::{
         any(feature = "rpc-client-ws", feature = "rpc-client-wasm"),
         not(feature = "rpc-server")
     ),
-    rpc(client, namespace = "room")
+    rpc(client, namespace = "rpc")
 )]
 #[cfg_attr(
     all(
         feature = "rpc-server",
         not(any(feature = "rpc-client-ws", feature = "rpc-client-wasm"))
     ),
-    rpc(server, namespace = "room")
+    rpc(server, namespace = "rpc")
 )]
 #[cfg_attr(
     all(
         any(feature = "rpc-client-ws", feature = "rpc-client-wasm"),
         feature = "rpc-server"
     ),
-    rpc(client, server, namespace = "room")
+    rpc(client, server, namespace = "rpc")
 )]
 pub trait RoomRpc {
     /// Creates new invite.
     #[method(name = "invite")]
-    fn invite(&self, jwt: JwtEncoded) -> Result<Invite, RoomError>;
+    fn invite(&self, tok: AccessTokenEncoded) -> Result<Invite, RoomError>;
 
     /// Revokes invite.
     #[method(name = "revoke_invite")]
-    fn revoke_invite(&self, jwt: JwtEncoded, invite_id: InvitePassword) -> Result<(), RoomError>;
+    fn revoke_invite(
+        &self,
+        tok: AccessTokenEncoded,
+        invite_password: InvitePassword,
+    ) -> Result<(), RoomError>;
 
     /// Kicks client.
     #[method(name = "kick")]
-    fn kick(&self, jwt: JwtEncoded, client_id: ClientId) -> Result<(), RoomError>;
+    fn kick(&self, tok: AccessTokenEncoded, client_id: ClientId) -> Result<(), RoomError>;
 
-    /// Announces new file.
-    #[method(name = "announce_file")]
-    fn announce_file(&self, jwt: JwtEncoded, file_meta: FileMeta) -> Result<FileId, RoomError>;
+    /// Announces new entity.
+    #[method(name = "announce_entity")]
+    fn announce_entity(
+        &self,
+        tok: AccessTokenEncoded,
+        entity_meta: EntityMeta,
+    ) -> Result<EntityId, RoomError>;
 
     /// Removes file.
-    #[method(name = "remove_file")]
-    fn remove_file(&self, jwt: JwtEncoded, file_id: FileId) -> Result<(), RoomError>;
+    #[method(name = "remove_entity")]
+    fn remove_entity(&self, tok: AccessTokenEncoded, entity_id: EntityId) -> Result<(), RoomError>;
 
-    /// Uploads received file.
-    #[method(name = "upload_file")]
-    async fn upload_file(
-        &self,
-        jwt: JwtEncoded,
-        file_data: FileData,
-        download_id: DownloadProcId,
-    ) -> Result<(), RoomError>;
-
-    /// Creates new room and connect to it.
-    #[subscription(name = "sub_create", unsubscribe = "unsub_create", item = ClientEvent)]
+    /// Creates new rpc and connect to it.
+    #[subscription(name = "sub_create", unsubscribe = "unsub_create", item = RoomEvent)]
     async fn create(&self, options: RoomOptions) -> SubscriptionResult;
 
-    /// Connects to existed room.
-    #[subscription(name = "sub_connect", unsubscribe = "unsub_connect", item = ClientEvent)]
+    /// Connects to existed rpc.
+    #[subscription(name = "sub_connect", unsubscribe = "unsub_connect", item = RoomEvent)]
     async fn connect(&self, room_id: RoomId, invite_password: InvitePassword)
         -> SubscriptionResult;
-
-    /// Subscribes to receive the file block by block.
-    #[subscription(name = "sub_download", unsubscribe = "unsub_download", item = FileData)]
-    async fn sub_download(&self, jwt: JwtEncoded, file_id: FileId) -> SubscriptionResult;
 }

@@ -1,41 +1,39 @@
-mod media_card;
-mod media_upload;
+mod entity_announce;
+mod entity_card;
 
 use std::collections::HashMap;
 
-use drophub::{FileId, FileMeta};
+use drophub::{EntityId, EntityMeta};
+use indexmap::IndexMap;
 use yew::prelude::*;
 
-use crate::components::room_media_share::{
-    media_card::{MediaCard, MediaKind},
-    media_upload::MediaUpload,
-};
+use crate::components::room_entities::{entity_announce::EntityAnnounce, entity_card::EntityCard};
 
 #[derive(Debug, Clone, Eq, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
     pub loading: bool,
-    pub medias: HashMap<FileId, FileMeta>,
+    pub entities: IndexMap<EntityId, EntityMeta>,
 }
 
-#[function_component(RoomMediaShare)]
-pub fn room_media_share(props: &Props) -> Html {
-    let medias = props
-        .medias
+#[function_component(RoomEntities)]
+pub fn room_entities(props: &Props) -> Html {
+    let entities = props
+        .entities
         .iter()
-        .map(|(file_id, file_meta)| {
+        .map(|(entity_id, entity_meta)| {
             html! {
-                <MediaCard
+                <EntityCard
                     loading={props.loading}
-                    kind={MediaKind::File}
-                    name={file_meta.name.clone()}
+                    id={entity_id}
+                    meta={entity_meta.clone()}
                 />
             }
         })
         .collect::<Html>();
 
     let upload = html! {
-        <MediaUpload />
+        <EntityAnnounce />
     };
 
     html! {
@@ -62,7 +60,7 @@ pub fn room_media_share(props: &Props) -> Html {
                             row-cols-auto 
                             g-3"
                 >
-                    {medias}
+                    {entities}
                     {upload}
                 </div>
             </div>

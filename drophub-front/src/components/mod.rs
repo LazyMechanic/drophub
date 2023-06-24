@@ -9,7 +9,7 @@ pub mod notify;
 pub mod placeholder;
 pub mod qr_code;
 pub mod room_control;
-pub mod room_media_share;
+pub mod room_entities;
 
 pub use self::{
     connect_room_form::ConnectRoomForm,
@@ -23,5 +23,5 @@ pub use self::{
     placeholder::Placeholder,
     qr_code::QrCode,
     room_control::RoomControl,
-    room_media_share::RoomMediaShare,
+    room_entities::RoomEntities,
 };
