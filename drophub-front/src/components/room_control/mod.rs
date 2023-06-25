@@ -8,15 +8,12 @@ mod room_info_modal;
 
 use std::collections::HashMap;
 
-use drophub::{ClientId, InvitePassword, RoomId, RoomOptions};
+use drophub::{ClientId, ClientRole, InvitePassword, RoomId, RoomOptions};
 use web_sys::Element;
 use yew::prelude::*;
 
 use self::{client_list::ClientList, header::Header, invite_list::InviteList, room_info::RoomInfo};
-use crate::{
-    components::Placeholder, hooks::use_notify, routes::room::state::ClientRole,
-    unwrap_notify_ext::UnwrapNotifyExt,
-};
+use crate::{components::Placeholder, hooks::use_notify, unwrap_notify_ext::UnwrapNotifyExt};
 
 #[derive(Debug, Clone, Eq, PartialEq, Properties)]
 pub struct Props {

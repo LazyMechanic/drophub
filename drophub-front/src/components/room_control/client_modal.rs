@@ -1,7 +1,5 @@
-use drophub::{ClientId, RoomId, RoomOptions};
+use drophub::{ClientId, ClientRole};
 use yew::prelude::*;
-
-use crate::{components::Placeholder, routes::room::state::ClientRole};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {

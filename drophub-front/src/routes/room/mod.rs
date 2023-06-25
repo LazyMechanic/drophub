@@ -3,7 +3,7 @@ pub mod state;
 
 use std::{collections::HashMap, ops::Deref, rc::Rc, str::FromStr};
 
-use drophub::{InvitePassword, RoomEvent, RoomId, RoomOptions, RoomRpcClient};
+use drophub::{ClientRole, RoomEvent, RoomOptions, RoomRpcClient};
 use jsonrpsee::core::client::Subscription;
 use serde::{Deserialize, Deserializer, Serialize};
 use yew::prelude::*;
@@ -17,7 +17,7 @@ use crate::{
     routes::{
         room::{
             query::{ActionConnect, ActionCreate, Query},
-            state::{ClientRole, State},
+            state::State,
         },
         Route,
     },
@@ -30,6 +30,7 @@ pub fn room() -> Html {
     let location = use_location().expect_notify(&notify_manager, "Failed to get location");
     let navigator = use_navigator().expect_notify(&notify_manager, "Failed to get navigator");
     let state_handle = use_state(State::default);
+
     //let rpc_client = use_rpc();
 
     //let room_handle = use_async(handle_room_update(rpc_client, state_handle.clone()));

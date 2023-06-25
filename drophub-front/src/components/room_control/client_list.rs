@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use drophub::ClientId;
+use drophub::{ClientId, ClientRole};
 use uuid::Uuid;
 use web_sys::Element;
 use yew::prelude::*;
@@ -8,7 +8,6 @@ use yew::prelude::*;
 use crate::{
     components::{room_control::client_modal::ClientModal, Placeholder},
     hooks::use_notify,
-    routes::room::state::ClientRole,
     unwrap_notify_ext::UnwrapNotifyExt,
 };
 
