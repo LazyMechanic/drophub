@@ -1,4 +1,4 @@
-use drophub::{ClientId, RoomId, RoomOptions};
+use drophub::{PeerId, RoomId, RoomOptions};
 use yew::prelude::*;
 
 use crate::components::Placeholder;
@@ -9,7 +9,7 @@ pub struct Props {
     pub loading: bool,
     pub room_id: RoomId,
     pub room_opts: RoomOptions,
-    pub host: ClientId,
+    pub host: PeerId,
 }
 
 #[function_component(RoomInfoModal)]
@@ -50,7 +50,7 @@ pub fn room_info_modal(props: &Props) -> Html {
                                 <tr>
                                     <th scope="row">{"Host ID"}</th>
                                     <td>
-                                        <Placeholder<ClientId>
+                                        <Placeholder<PeerId>
                                             enabled={props.loading}
                                             content={props.host}
                                         />

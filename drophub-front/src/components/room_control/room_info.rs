@@ -1,4 +1,4 @@
-use drophub::{ClientId, RoomId, RoomOptions};
+use drophub::{PeerId, RoomId, RoomOptions};
 use yew::prelude::*;
 
 use crate::components::room_control::room_info_modal::RoomInfoModal;
@@ -9,7 +9,7 @@ pub struct Props {
     pub loading: bool,
     pub room_id: RoomId,
     pub room_opts: RoomOptions,
-    pub host: ClientId,
+    pub host: PeerId,
 }
 
 #[function_component(RoomInfo)]

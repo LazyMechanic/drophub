@@ -1,3 +1,7 @@
-pub mod room;
+pub mod error;
+pub mod rpc;
+pub mod types;
 
-pub use room::*;
+pub use error::*;
+pub use rpc::*;
+pub use types::*;

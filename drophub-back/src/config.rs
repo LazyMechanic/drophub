@@ -2,31 +2,24 @@ use std::{net::SocketAddr, path::Path, time::Duration};
 
 use config as config_lib;
 use dotenv::dotenv;
+use mongodb::options::{Credential, ServerAddress};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub server: ServerConfig,
-    pub room: RoomConfig,
+    pub mongodb: MongodbConfig,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ServerConfig {
     pub bind_addr: SocketAddr,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct RoomConfig {
-    pub jwt: JwtConfig,
-    #[serde(with = "humantime_serde")]
-    pub invite_ttl: Duration,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct JwtConfig {
     pub secret: String,
-    #[serde(default, with = "humantime_serde")]
-    pub ttl: Option<Duration>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct MongodbConfig {
+    pub uri: String,
 }
 
 impl Config {

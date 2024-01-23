@@ -34,7 +34,7 @@ fn init_logging() -> anyhow::Result<()> {
 async fn run_server() -> anyhow::Result<()> {
     let cli = Cli::parse();
     let cfg = Config::new(cli.config_path.as_deref())?;
-    let (_, handle) = server::run(&cfg).await?;
+    let (_, handle) = server::run(cfg).await?;
     handle.stopped().await;
 
     Ok(())

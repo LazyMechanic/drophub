@@ -1,4 +1,4 @@
-use drophub::{EntityId, EntityKind, EntityMeta};
+use drophub::{Entity, EntityId, EntityKind};
 use yew::prelude::*;
 
 use crate::components::Placeholder;
@@ -8,7 +8,7 @@ pub struct Props {
     #[prop_or_default]
     pub loading: bool,
     pub id: EntityId,
-    pub meta: EntityMeta,
+    pub meta: Entity,
 }
 
 fn icon(kind: EntityKind) -> Html {

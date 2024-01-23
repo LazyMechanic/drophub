@@ -1,5 +1,5 @@
 use assert_matches::assert_matches;
-use drophub::{EntityMeta, FileMeta, RoomEvent, RoomOptions, RoomRpcClient};
+use drophub::{Entity, FileMeta, RoomEvent, RoomOptions, RoomRpcClient};
 use jsonrpsee::ws_client::WsClientBuilder;
 
 use crate::{server, test_utils};
@@ -200,7 +200,7 @@ async fn announce_entity() {
     let file_id = client
         .announce_entity(
             host_token,
-            EntityMeta::File(FileMeta {
+            Entity::File(FileMeta {
                 name: "123".to_owned(),
                 size: 123,
             }),
@@ -242,7 +242,7 @@ async fn remove_entity() {
     let file_id = client
         .announce_entity(
             host_token.clone(),
-            EntityMeta::File(FileMeta {
+            Entity::File(FileMeta {
                 name: "123".to_owned(),
                 size: 123,
             }),

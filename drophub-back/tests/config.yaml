@@ -1,8 +1,11 @@
 server:
   bind_addr: "0.0.0.0:0"
-
-room:
-  jwt:
-    secret: "12345"
-#    ttl: "5s"
-  invite_ttl: "5m"
+  secret: "12345"
+db:
+  url: "127.0.0.1:10000"
+  test_before_acquire: true
+  acquire_timeout: 30s
+  max_connections: 10
+  min_connections: 0
+  max_lifetime: 30m
+  idle_timeout: 10m

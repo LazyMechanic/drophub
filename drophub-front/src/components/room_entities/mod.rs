@@ -3,7 +3,7 @@ mod entity_card;
 
 use std::collections::HashMap;
 
-use drophub::{EntityId, EntityMeta};
+use drophub::{Entity, EntityId};
 use indexmap::IndexMap;
 use yew::prelude::*;
 
@@ -13,7 +13,7 @@ use crate::components::room_entities::{entity_announce::EntityAnnounce, entity_c
 pub struct Props {
     #[prop_or_default]
     pub loading: bool,
-    pub entities: IndexMap<EntityId, EntityMeta>,
+    pub entities: IndexMap<EntityId, Entity>,
 }
 
 #[function_component(RoomEntities)]

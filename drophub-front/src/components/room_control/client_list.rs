@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use drophub::{ClientId, ClientRole};
+use drophub::{ClientRole, PeerId};
 use uuid::Uuid;
 use web_sys::Element;
 use yew::prelude::*;
@@ -15,8 +15,8 @@ use crate::{
 pub struct Props {
     #[prop_or_default]
     pub loading: bool,
-    pub clients: HashMap<ClientId, ClientRole>,
-    pub cur_client: (ClientId, ClientRole),
+    pub clients: HashMap<PeerId, ClientRole>,
+    pub cur_client: (PeerId, ClientRole),
     pub capacity: usize,
 }
 
@@ -161,7 +161,7 @@ pub fn client_list(props: &Props) -> Html {
     }
 }
 
-fn format_short_client_id(client_id: ClientId) -> String {
+fn format_short_client_id(client_id: PeerId) -> String {
     let client_id = client_id.to_string();
     format!(
         "{}...{}",

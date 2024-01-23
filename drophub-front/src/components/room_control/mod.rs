@@ -8,7 +8,7 @@ mod room_info_modal;
 
 use std::collections::HashMap;
 
-use drophub::{ClientId, ClientRole, InvitePassword, RoomId, RoomOptions};
+use drophub::{ClientRole, InvitePassword, PeerId, RoomId, RoomOptions};
 use web_sys::Element;
 use yew::prelude::*;
 
@@ -21,9 +21,9 @@ pub struct Props {
     pub loading: bool,
     pub room_id: RoomId,
     pub room_opts: RoomOptions,
-    pub clients: HashMap<ClientId, ClientRole>,
-    pub cur_client: (ClientId, ClientRole),
-    pub host: ClientId,
+    pub clients: HashMap<PeerId, ClientRole>,
+    pub cur_client: (PeerId, ClientRole),
+    pub host: PeerId,
     pub invites: Vec<InvitePassword>,
 }
 

@@ -168,8 +168,8 @@ async fn handle_subscribe(
         match event {
             RoomEvent::Init {
                 token,
-                client_id,
-                client_role,
+                peer_id: client_id,
+                peer_role: client_role,
             } => {
                 let mut s = state_handle.deref().clone();
                 s.client.token = token;

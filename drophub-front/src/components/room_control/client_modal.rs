@@ -1,12 +1,12 @@
-use drophub::{ClientId, ClientRole};
+use drophub::{ClientRole, PeerId};
 use yew::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
     pub loading: bool,
-    pub selected_client: (ClientId, ClientRole),
-    pub cur_client: (ClientId, ClientRole),
+    pub selected_client: (PeerId, ClientRole),
+    pub cur_client: (PeerId, ClientRole),
 }
 
 #[function_component(ClientModal)]
